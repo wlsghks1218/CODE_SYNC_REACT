@@ -78,36 +78,41 @@ const Button = styled.button`
 
 const Login = () => {
   const dispatch = useDispatch();
-  const nav = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const [userId, setUserId] = useState("");
+  const [userPw, setUserPw] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isValid, setIsValid] = useState(true);
-  console.log(rememberMe);
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    try {
+      const response = await axios.post(
+        "http://localhost:9090/member/login",
+        {
+          userId: userId,
+          userPw: userPw,
+          "remember-me": rememberMe,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          maxRedirects: 0, // 리다이렉트를 방지
+        }
+      );
 
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: username,
-        password: password,
-        "remember-me": rememberMe
-    }),
-    });
+      if (response.status === 200) {
+        const userResponse = await axios.get("http://localhost:9090/member/user");
+        const principal = userResponse.data.principal;
 
-    if(response.ok){
-      let req = await axios.get('/api/user');
-      const data = req.data;
-      const principal = data.principal;
-
-      dispatch(login(principal));
-      nav('/');
-    }else{
+        dispatch(login(principal));
+        navigate("/");
+      } else {
+        setIsValid(false);
+      }
+    } catch (error) {
+      console.error("로그인 오류: ", error);
       setIsValid(false);
     }
-
     // if (response.ok) {
     //   const { token } = await response.json();
     //   localStorage.setItem("token", token); // JWT 저장
@@ -115,6 +120,7 @@ const Login = () => {
     //   console.error("로그인 실패");
     // }
   };
+
   return (
     <Container>
       <Title>로그인</Title>
@@ -122,15 +128,15 @@ const Login = () => {
         <Input
           type="text"
           name="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
           placeholder="아이디"
         />
         <Input
           type="password"
           name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={userPw}
+          onChange={(e) => setUserPw(e.target.value)}
           placeholder="비밀번호"
         />
         <label>
