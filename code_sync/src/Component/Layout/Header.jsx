@@ -1,6 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { logout } from '../../Action/userAction';
+import axios from 'axios';
 
 const StyledHeader = styled.div`
   position: fixed;
@@ -53,15 +56,50 @@ const ButtonContainer = styled.div`
   margin-right: 30px;
 `;
 
+
 const Header = () => {
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const user = useSelector(state => state.user);
+  const dispatch = useDispatch();
+
+  console.log(user)
+  const handleLogout = async () => {
+    if (user) {
+      try {
+        await axios.post("http://localhost:9090/member/logout", { userId: user.userId }, {
+          headers: { "Content-Type": "application/json" },
+        });
+        dispatch(logout());
+        console.log("Logout successful");
+        navigate("/");
+      } catch (error) {
+        console.error("Logout failed:", error);
+      }
+    } else {
+      console.warn("No user found for logout");
+    }
+  };
+  const handleCreateProject = () => {
+    if(!isAuthenticated){
+      alert("로그인 후 사용 가능한 기능입니다.");
+      navigate('/login');
+    }
+  }
+
     return (
       <StyledHeader>
         <StyledLogo><Link to ='/'>My Logo</Link></StyledLogo>
         <ButtonContainer>
-          <StyledButton><Link to = '/login'>LOGIN</Link></StyledButton>
-          <StyledButton>LOGOUT</StyledButton>
-          <StyledButton>MY PAGE</StyledButton>
-          <StyledButton>CREATE PROJECT</StyledButton>
+          {
+            user.user === null
+            ? <StyledButton><Link to='/login'>LOGIN</Link></StyledButton>
+            : <StyledButton><Link onClick={handleLogout}>LOGOUT</Link></StyledButton>
+          }
+          {(!isAuthenticated) ?
+            <StyledButton><Link to='/join'>SIGN IN</Link></StyledButton> :
+            <StyledButton><Link to='/myPage'>MY PAGE</Link></StyledButton>}
+          <StyledButton onClick={handleCreateProject}>CREATE PROJECT</StyledButton>
           <StyledButton>MOVE TO ADMIN</StyledButton>
         </ButtonContainer>
       </StyledHeader>

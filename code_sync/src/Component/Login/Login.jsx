@@ -99,11 +99,11 @@ const Login = () => {
           maxRedirects: 0, // 리다이렉트를 방지
         }
       );
-
+      console.log(response.data);
+      console.log("Response 객체 : " + JSON.stringify(response.data, null, 2));
+      
       if (response.status === 200) {
-        const userResponse = await axios.get("http://localhost:9090/member/user");
-        const principal = userResponse.data.principal;
-
+        const principal = response.data.principal;
         dispatch(login(principal));
         navigate("/");
       } else {
