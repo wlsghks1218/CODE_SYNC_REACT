@@ -14,7 +14,7 @@ const user = (state = initialState, action) => {
     case LOGOUT:
       return { ...state, isAuthenticated: false, user: null };
     default:
-      return { ...state, isAuthenticated: false, user: null };
+      return state;
   }
 }
 

@@ -64,7 +64,7 @@ const JoinStyle = styled.div`
     }
   `;
 
-  const VerificationButton = styled.button`
+const VerificationButton = styled.button`
   padding: 10px;
   background-color: ${({ disabled }) => (disabled ? '#d3d3d3' : 'lightgreen')};
   color: black;
@@ -80,26 +80,26 @@ const JoinStyle = styled.div`
 
   &:hover {
     background-color: ${({ disabled }) => (disabled ? '#d3d3d3' : 'green')};
+}
+
+span {
+  display: flex;
+  align-items: center;
+
+  .spinner {
+    border: 2px solid lightgray;
+    border-top: 2px solid green;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    animation: ${spin} 1s linear infinite;
+    margin-right: 5px;
   }
 
-  span {
-    display: flex;
-    align-items: center;
-
-    .spinner {
-      border: 2px solid lightgray;
-      border-top: 2px solid green;
-      border-radius: 50%;
-      width: 15px;
-      height: 15px;
-      animation: ${spin} 1s linear infinite;
-      margin-right: 5px;
-    }
-
-    .text {
-      font-size: 16px;
-    }
+  .text {
+    font-size: 16px;
   }
+}
 `;
 
 const Join = () => {
@@ -110,12 +110,11 @@ const Join = () => {
     userEmail: '',
   });
 
-  const [isIdDuplicate, setIsIdDuplicate] = useState(null); // 아이디 중복 여부 상태 추가
-  const [verificationCode, setVerificationCode] = useState('');
+  const [isIdDuplicate, setIsIdDuplicate] = useState(null);
   const [isVerificationSent, setIsVerificationSent] = useState(false);
-  const [isSendingVerification, setIsSendingVerification] = useState(false); // 로딩 상태 추가
-  const [serverCode, setServerCode] = useState(''); // 서버에서 받은 인증 코드
-  const [inputCode, setInputCode] = useState(''); // 사용자가 입력한 코드
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [serverCode, setServerCode] = useState('');
+  const [inputCode, setInputCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
 
   const navigate = useNavigate();
@@ -139,11 +138,11 @@ const Join = () => {
     try {
       const response = await axios.post('http://localhost:9090/member/checkUsername/', { userId });
       if (response.data.isDuplicate) {
-        setIsIdDuplicate(true); // 중복인 경우 상태 업데이트
+        setIsIdDuplicate(true);
         alert('이미 존재하는 아이디입니다.');
         return false;
       } else {
-        setIsIdDuplicate(false); // 사용 가능한 경우 상태 업데이트
+        setIsIdDuplicate(false);
         alert('사용 가능한 아이디입니다!');
         return true;
       }
@@ -168,7 +167,7 @@ const Join = () => {
         setServerCode(verificationCode);
         console.log(serverCode);
         alert('인증 코드가 이메일로 전송되었습니다.');
-        setIsVerificationSent(true); // 버튼 비활성화
+        setIsVerificationSent(true);
       }
     } catch (error) {
       alert('인증 코드 전송 중 오류가 발생했습니다.');

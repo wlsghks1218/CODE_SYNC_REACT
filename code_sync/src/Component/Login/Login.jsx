@@ -99,12 +99,12 @@ const Login = () => {
           maxRedirects: 0, // 리다이렉트를 방지
         }
       );
-      console.log(response.data);
       console.log("Response 객체 : " + JSON.stringify(response.data, null, 2));
       
       if (response.status === 200) {
-        const principal = response.data.principal;
-        dispatch(login(principal));
+        const user = response.data.principal;
+        console.log("로그인된 유저의 정보 " + user.user.userNo);
+        dispatch(login(user));
         navigate("/");
       } else {
         setIsValid(false);

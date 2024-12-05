@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -55,19 +55,56 @@ const ButtonContainer = styled.div`
   align-items: center;
   margin-right: 30px;
 `;
+const ModalBackground = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalContent = styled.div`
+  width: 400px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+`;
+
+const ModalButton = styled.button`
+  margin-top: 10px;
+  margin-left: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
 
 
 const Header = () => {
   const navigate = useNavigate();
+  const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector(state => state.user);
   const dispatch = useDispatch();
-
-  console.log(user)
+  
+  console.log("유저: " + JSON.stringify(user, null, 2));
   const handleLogout = async () => {
+    console.log("로그아웃 시도 유저 : " + user.user.userId);
     if (user) {
       try {
-        await axios.post("http://localhost:9090/member/logout", { userId: user.userId }, {
+        await axios.post("http://localhost:9090/member/logout", { userId: user.user.userId }, {
           headers: { "Content-Type": "application/json" },
         });
         dispatch(logout());
@@ -81,11 +118,19 @@ const Header = () => {
     }
   };
   const handleCreateProject = () => {
-    if(!isAuthenticated){
-      alert("로그인 후 사용 가능한 기능입니다.");
-      navigate('/login');
+      if (!isAuthenticated) {
+        setIsLoginRequiredModalOpen(true);
+        return;
     }
   }
+  const handleCloseLoginRequiredModal = () => {
+    setIsLoginRequiredModalOpen(false);
+};
+
+const handleNavigateToLogin = () => {
+    setIsLoginRequiredModalOpen(false);
+    navigate('/login');
+};
 
     return (
       <StyledHeader>
@@ -102,6 +147,18 @@ const Header = () => {
           <StyledButton onClick={handleCreateProject}>CREATE PROJECT</StyledButton>
           <StyledButton>MOVE TO ADMIN</StyledButton>
         </ButtonContainer>
+        {isLoginRequiredModalOpen && (
+                <ModalBackground onClick={handleCloseLoginRequiredModal}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <h2>로그인이 필요합니다.</h2>
+                        <p>로그인 후 사용 가능한 기능입니다.</p>
+                        <div>
+                            <ModalButton onClick={handleNavigateToLogin}>로그인</ModalButton>
+                            <ModalButton onClick={handleCloseLoginRequiredModal}>돌아가기</ModalButton>
+                        </div>
+                    </ModalContent>
+                </ModalBackground>
+            )}
       </StyledHeader>
     );
   };
