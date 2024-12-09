@@ -103,8 +103,8 @@ const Login = () => {
       
       if (response.status === 200) {
         const user = response.data.principal;
-        console.log("로그인된 유저의 정보 " + user.user.userNo);
-        dispatch(login(user));
+        console.log("로그인된 유저의 정보 " + JSON.stringify(user.user, null, 2));
+        dispatch(login(user.user));
         navigate("/");
       } else {
         setIsValid(false);

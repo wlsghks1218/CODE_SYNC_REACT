@@ -41,7 +41,54 @@ const ProjectDiv = styled.div`
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  gap: 10px;
+  position: relative;
+  overflow: hidden;
+
+  &:hover .overlay {
+    display: block;
+  }
+
+  &:hover .tooltip {
+    display: flex;
+  }
+`;
+
+const Overlay = styled.div`
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+`;
+
+const Tooltip = styled.div`
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  color: black;
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 14px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 1;
+
+  width: 200px;
+  height: auto;
+`;
+
+const TooltipItem = styled.div`
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const ModalBackground = styled.div`
@@ -54,6 +101,7 @@ const ModalBackground = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 9999;
 `;
 
 const ModalContent = styled.div`
@@ -164,6 +212,11 @@ const Spinner = styled.div`
     100% { transform: rotate(360deg); }
   }
 `;
+const ProjectDelSpan = styled.span`
+    color:red;
+    text-align:center;
+`;
+
 
 const Main = () => {
     const navigate = useNavigate();
@@ -186,33 +239,44 @@ const Main = () => {
         muserNo: ''
     });
 
+    const fetchProjects = async () => {
+        try {
+            const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
+            setProjects(response.data);
+        } catch (error) {
+            console.error('프로젝트 목록 조회 실패:', error);
+        }
+    };
+
     useEffect(() => {
-        if (user && user.user) {
+        if (isAuthenticated && user && user.user) {
             setProjectInfo(prev => ({
                 ...prev,
                 muserNo: user.user.userNo || ''
             }));
-            const fetchProjects = async () => {
-                try {
-                    const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
-                    setProjects(response.data);
-                } catch (error) {
-                    console.error('프로젝트 목록 조회 실패:', error);
-                }
-            };
+    
+            console.log("로그인된 유저 데이터: " + JSON.stringify(user, null, 2));
+    
             fetchProjects();
+    
             const fetchAllUsers = async () => {
                 try {
                     const response = await axios.get('http://localhost:9090/member/getAllUsers');
-                    const filtered = response.data.filter(user => !selectedProject?.users?.some(u => u.userId === user.userId));
+                    const filtered = response.data.filter(user =>
+                        !selectedProject?.users?.some(u => u.userId === user.userId)
+                    );
                     setAllUsers(filtered);
                 } catch (error) {
                     console.error('유저 목록 조회 실패:', error);
                 }
             };
             fetchAllUsers();
+        } else {
+            setProjects([]);
+            setAllUsers([]);
+            console.log("로그아웃 상태: 프로젝트 목록 초기화");
         }
-    }, [user, selectedProject]);
+    }, [isAuthenticated, user, selectedProject]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -227,6 +291,13 @@ const Main = () => {
             setIsLoginRequiredModalOpen(true);
             return;
         }
+        setProjectInfo({
+            projectName: '',
+            projectDisclosure: 'public',
+            projectDesc: '',
+            muserNo: user.user?.userNo || ''
+          });
+
         setIsModalOpen(true);
     };
 
@@ -243,11 +314,8 @@ const Main = () => {
         navigate('/login');
     };
     
-    const handleNavigateToProject = (projectNo) => {
-        navigate(`/project/${projectNo}`);
-    };
-
     const handleOpenProjectUsersModal = async (project) => {
+        
         try {
             const response = await axios.get(`http://localhost:9090/project/getProjectUsers?projectNo=${project.projectNo}`);
             setSelectedProject({ ...project, users: response.data });
@@ -275,22 +343,27 @@ const Main = () => {
     };
 
     const handleSubmit = async () => {
-        if(projectInfo.projectName === ''){
+        if (projectInfo.projectName === '') {
             alert("프로젝트 이름을 입력하세요.");
             return;
         }
         try {
-            const response = await axios.post('http://localhost:9090/project/createProject', projectInfo, {
+            await axios.post('http://localhost:9090/project/createProject', projectInfo, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-            console.log('프로젝트 생성 성공:', response.data);
+            console.log('프로젝트 생성 성공');
+    
+            const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
+            setProjects(response.data);
+    
             handleCloseModal();
         } catch (error) {
             console.error('프로젝트 생성 실패:', error);
         }
     };
+
     const handleInvite = async (userNo, userEmail) => {
         if (selectedProject) {
             console.log(selectedProject.projectNo, selectedProject.projectName, userNo, userEmail);
@@ -317,27 +390,97 @@ const Main = () => {
         }
     };
 
+    function displayTime(unixTimeStamp) {
+        if (!unixTimeStamp) return ''; // 값 검증
+        const myDate = new window.Date(unixTimeStamp); // window.Date 사용
+        if (isNaN(myDate)) return ''; // 유효하지 않은 날짜 처리
+        const y = myDate.getFullYear();
+        const m = String(myDate.getMonth() + 1).padStart(2, '0');
+        const d = String(myDate.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      const handleMoveToErd = async (projectNo) => {
+        const response = await axios.get(`http://localhost:9090/project/checkErd`, {
+            params: { projectNo },
+        });
+      
+        const newErdNo = response.data.erdNo;
+        navigate(`/erd/${newErdNo}`);
+      };
+
+      const handleMoveToCode = async (projectNo) => {
+          const response = await axios.get(`http://localhost:9090/project/checkCode`, {
+            params: { projectNo },
+          });
+          const codeNo = response.data.codeSyncNo;
+          navigate(`/code/${codeNo}`);
+      };
+
+      const handleMoveToDocs = async (projectNo) => {
+          const response = await axios.get(`http://localhost:9090/project/checkDocs`, {
+            params: { projectNo },
+          });
+          const wrapperNo = response.data.wrapperNo;
+          navigate(`/docs/${wrapperNo}`);
+      };
+
+    const deleteProject = async (projectNo) => {
+        // eslint-disable-next-line no-restricted-globals
+        if (confirm("프로젝트 진짜 지울거에요?")) {
+          try {
+            const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
+              params: { projectNo },
+            });
+            if (response.data.success) {
+              fetchProjects();
+              alert("프로젝트가 성공적으로 삭제되었습니다.");
+            } else {
+              alert("프로젝트 삭제에 실패했습니다.");
+            }
+          } catch (error) {
+            console.error("프로젝트 삭제 중 오류 발생:", error);
+            alert("프로젝트 삭제 중 오류가 발생했습니다.");
+          }
+        } else {
+          return;
+        }
+      };
+
     return (
         <>
-            <Container>
-                {projects.map((project) => (
-                    <ProjectDiv key={project.projectNo} onClick={() => handleNavigateToProject(project.projectNo)}>
-                        <h2>{project.projectName}</h2><br/>
-                        <span>프로젝트 구성하기</span>
-                        <span onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenProjectUsersModal(project);
-                        }}>프로젝트 참여 인원</span>
-                    </ProjectDiv>
-                ))}
-                {projects.length < 3 && (
-                    Array.from({ length: 3 - projects.length }).map((_, index) => (
-                        <BannerDiv key={index} onClick={handleOpenProjectModal}>
-                            + create project
-                        </BannerDiv>
-                    ))
-                )}
-            </Container>
+    <Container>
+      {projects.map((project) => (
+        <ProjectDiv key={project.projectNo}>
+          <Overlay className="overlay" />
+          <Tooltip className="tooltip">
+            <TooltipItem onClick={() => handleMoveToErd(project.projectNo)}>
+                ERD 구성
+            </TooltipItem>
+            <TooltipItem onClick={() => handleMoveToCode(project.projectNo)}>
+                CODE 구성
+            </TooltipItem>
+            <TooltipItem onClick={() => handleMoveToDocs(project.projectNo)}>
+                문서 확인
+            </TooltipItem>
+            <span>{project.projectDisclosure}</span>
+            <span onClick={(e) => {
+                e.stopPropagation();
+                handleOpenProjectUsersModal(project);
+            }}>프로젝트 인원 추가하기</span>
+            <ProjectDelSpan onClick ={()=>deleteProject(project.projectNo)}>프로젝트 삭제하기</ProjectDelSpan>
+          </Tooltip>
+          <h2>{project.projectName}</h2>
+          <h2>{displayTime(project.projectCreateDate)}</h2>
+        </ProjectDiv>
+      ))}
+      {projects.length < 3 &&
+        Array.from({ length: 3 - projects.length }).map((_, index) => (
+            <BannerDiv key={index} onClick={handleOpenProjectModal}>
+            + create project
+            </BannerDiv>
+        ))}
+    </Container>
             {isModalOpen && (
                 <ModalBackground onClick={handleCloseModal}>
                     <ModalContent onClick={(e) => e.stopPropagation()}>

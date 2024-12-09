@@ -10,7 +10,9 @@ import MyPage from '../MyPage/MyPage';
 import Footer from '../Layout/Footer';
 import ExpiredPage from '../Error/ExpiredPage';
 import AlreadyJoined from '../Error/AlreadyJoined';
-import Project from '../Project/Project';
+import Erd from '../Erd/Erd';
+import CodeSync from '../CodeSync/CodeSync';
+import Docs from '../Docs/Docs';
 
 const DisplayWrapper = styled.div`
     margin: auto;
@@ -56,8 +58,10 @@ const Display = () => {
                         }
                     />
                     <Route path='/expiredPage' element={<ExpiredPage/>}/>
-                    <Route path='/project/:projectNo' element={<Project/>}/>
                     <Route path='/alreadyJoined' element={<AlreadyJoined/>}/>
+                    <Route path='/erd/:erdNo' element={<Erd/>}/>
+                    <Route path='/codeSync/:codeNo' element={<CodeSync/>}/>
+                    <Route path='/docs/:wrapperNo' element={<Docs/>}/>
                 </Routes>
             </Body>
             <Footer/>
