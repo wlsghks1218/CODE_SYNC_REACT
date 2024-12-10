@@ -218,12 +218,11 @@ const ProjectDelSpan = styled.span`
 `;
 
 
-const Main = () => {
+const Main = ({ projects, fetchProjects }) => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
     const [isProjectUsersModalOpen, setIsProjectUsersModalOpen] = useState(false);
-    const [projects, setProjects] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
@@ -239,15 +238,6 @@ const Main = () => {
         muserNo: ''
     });
 
-    const fetchProjects = async () => {
-        try {
-            const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
-            setProjects(response.data);
-        } catch (error) {
-            console.error('프로젝트 목록 조회 실패:', error);
-        }
-    };
-
     useEffect(() => {
         if (isAuthenticated && user && user.user) {
             setProjectInfo(prev => ({
@@ -257,7 +247,7 @@ const Main = () => {
     
             console.log("로그인된 유저 데이터: " + JSON.stringify(user, null, 2));
     
-            fetchProjects();
+            fetchProjects(user?.user?.userNo);
     
             const fetchAllUsers = async () => {
                 try {
@@ -272,11 +262,10 @@ const Main = () => {
             };
             fetchAllUsers();
         } else {
-            setProjects([]);
             setAllUsers([]);
             console.log("로그아웃 상태: 프로젝트 목록 초기화");
         }
-    }, [isAuthenticated, user, selectedProject]);
+    }, [isAuthenticated, user]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -355,8 +344,7 @@ const Main = () => {
             });
             console.log('프로젝트 생성 성공');
     
-            const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
-            setProjects(response.data);
+            fetchProjects(user?.user?.userNo);
     
             handleCloseModal();
         } catch (error) {
@@ -414,7 +402,7 @@ const Main = () => {
             params: { projectNo },
           });
           const codeNo = response.data.codeSyncNo;
-          navigate(`/code/${codeNo}`);
+          navigate(`/codeSync/${codeNo}`);
       };
 
       const handleMoveToDocs = async (projectNo) => {
@@ -433,7 +421,7 @@ const Main = () => {
               params: { projectNo },
             });
             if (response.data.success) {
-              fetchProjects();
+              fetchProjects(user?.user?.userNo);
               alert("프로젝트가 성공적으로 삭제되었습니다.");
             } else {
               alert("프로젝트 삭제에 실패했습니다.");

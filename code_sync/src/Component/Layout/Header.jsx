@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -91,24 +91,136 @@ const ModalButton = styled.button`
   }
 `;
 
+const CreateProjectHead = styled.h2`
+  text-align: left;
+  margin-bottom: 20px;
+  color: #333;
+`;
 
-const Header = () => {
+const StyledTable = styled.table`
+  width: 100%;
+`;
+
+const ColumnTd = styled.td`
+  text-align: left;
+  padding: 10px;
+  font-weight: bold;
+  vertical-align: top;
+`;
+
+const InputTd = styled.td`
+  text-align: left;
+  padding: 10px;
+`;
+
+const InputField = styled.input`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
+const TextAreaField = styled.textarea`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  height: 80px;
+`;
+
+const RadioGroup = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
+
+const UserList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+  margin-top: 10px;
+`;
+
+const UserListItem = styled.li`
+  margin: 5px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const InviteButton = styled.button`
+  padding: 5px 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #218838;
+  }
+  &:disabled {
+    background-color: #6c757d;
+  }
+`;
+
+const Spinner = styled.div`
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+
+const Header = ({ projects, fetchProjects, setProjects }) => {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
   const user = useSelector(state => state.user);
   const dispatch = useDispatch();
+
+  const [projectInfo, setProjectInfo] = useState({
+    projectName : '',
+    projectDisclosure : 'public',
+    projectDesc : '',
+    muserNo: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setProjectInfo({
+        ...projectInfo,
+        [name]: value,
+    });
+  };
+  useEffect(() => {
+    console.log("프로젝트 상태 변경 감지:", projects);
+  }, [projects]);
   
   console.log("유저: " + JSON.stringify(user, null, 2));
+  
   const handleLogout = async () => {
-    console.log("로그아웃 시도 유저 : " + user.user.userId);
+    console.log("로그아웃 시도 유저 : " + user.user?.userId);
     if (user) {
       try {
-        await axios.post("http://localhost:9090/member/logout", { userId: user.user.userId }, {
-          headers: { "Content-Type": "application/json" },
-        });
+        await axios.post(
+          "http://localhost:9090/member/logout",
+          { userId: user.user?.userId },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
         dispatch(logout());
+        setProjects([]);
+        console.log("로그아웃 후 프로젝트 : " + projects);
         console.log("Logout successful");
+  
         navigate("/");
       } catch (error) {
         console.error("Logout failed:", error);
@@ -117,12 +229,35 @@ const Header = () => {
       console.warn("No user found for logout");
     }
   };
-  const handleCreateProject = () => {
-      if (!isAuthenticated) {
+
+const handleCreateProject = async () => {
+    if (!isAuthenticated) {
         setIsLoginRequiredModalOpen(true);
         return;
     }
-  }
+
+    // 프로젝트 목록 가져오기
+    try {
+        const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
+
+        // 프로젝트가 3개 이상이면 경고 메시지 출력
+        if (response.data.length >= 3) {
+            alert("프로젝트는 최대 3개까지 생성할 수 있습니다.");
+            return;
+        }
+
+        // 프로젝트 생성 모달 열기
+        setProjectInfo({
+            projectName: '',
+            projectDisclosure: 'public',
+            projectDesc: '',
+            muserNo: user.user?.userNo || ''
+        });
+        setIsModalOpen(true);
+    } catch (error) {
+        console.error("프로젝트 목록 확인 중 오류 발생:", error);
+    }
+};
   const handleCloseLoginRequiredModal = () => {
     setIsLoginRequiredModalOpen(false);
 };
@@ -132,6 +267,30 @@ const handleNavigateToLogin = () => {
     navigate('/login');
 };
 
+const handleCloseModal = () => {
+  setIsModalOpen(false);
+};
+
+const handleSubmit = async () => {
+  if (projectInfo.projectName === '') {
+      alert("프로젝트 이름을 입력하세요.");
+      return;
+  }
+  try {
+      await axios.post('http://localhost:9090/project/createProject', projectInfo, {
+          headers: {
+              'Content-Type': 'application/json',
+          },
+      });
+      console.log('프로젝트 생성 성공');
+
+      fetchProjects(user?.user?.userNo);
+
+      handleCloseModal();
+  } catch (error) {
+      console.error('프로젝트 생성 실패:', error);
+  }
+};
     return (
       <StyledHeader>
         <StyledLogo><Link to ='/'>My Logo</Link></StyledLogo>
@@ -156,6 +315,66 @@ const handleNavigateToLogin = () => {
                             <ModalButton onClick={handleNavigateToLogin}>로그인</ModalButton>
                             <ModalButton onClick={handleCloseLoginRequiredModal}>돌아가기</ModalButton>
                         </div>
+                    </ModalContent>
+                </ModalBackground>
+            )}
+            {isModalOpen && (
+                <ModalBackground onClick={handleCloseModal}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <CreateProjectHead>Create Project</CreateProjectHead>
+                        <StyledTable>
+                            <tbody>
+                                <tr>
+                                    <ColumnTd>프로젝트 이름</ColumnTd>
+                                    <InputTd>
+                                        <InputField
+                                            type="text"
+                                            name="projectName"
+                                            placeholder="프로젝트 이름을 입력하세요."
+                                            value={projectInfo.projectName}
+                                            onChange={handleChange}
+                                        />
+                                    </InputTd>
+                                </tr>
+                                <tr>
+                                    <ColumnTd>프로젝트 공개여부</ColumnTd>
+                                    <InputTd>
+                                        <RadioGroup>
+                                            <label>
+                                                <input 
+                                                    type="radio" 
+                                                    name="projectDisclosure" 
+                                                    value="public" 
+                                                    onChange={handleChange}
+                                                    defaultChecked
+                                                    />Public
+                                            </label>
+                                            <label>
+                                                <input 
+                                                    type="radio" 
+                                                    name="projectDisclosure" 
+                                                    value="private"
+                                                    onChange={handleChange}
+                                                    />Private
+                                            </label>
+                                        </RadioGroup>
+                                    </InputTd>
+                                </tr>
+                                <tr>
+                                    <ColumnTd>프로젝트 설명</ColumnTd>
+                                    <InputTd>
+                                        <TextAreaField 
+                                            name="projectDesc"
+                                            placeholder="프로젝트 간략한 설명을 추가해주세요."
+                                            value={projectInfo.projectDesc}
+                                            onChange={handleChange}
+                                            />
+                                    </InputTd>
+                                </tr>
+                            </tbody>
+                        </StyledTable>
+                        <ModalButton onClick={handleSubmit}>만들기</ModalButton>
+                        <ModalButton onClick={handleCloseModal}>닫기</ModalButton>
                     </ModalContent>
                 </ModalBackground>
             )}
