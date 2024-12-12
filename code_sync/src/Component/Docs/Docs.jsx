@@ -55,7 +55,7 @@ const FileActionContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  width: 98%;
   margin-bottom: 10px;
   border-bottom: 1px solid #ccc;
 
@@ -69,8 +69,9 @@ const FileActionContainer = styled.div`
 `;
 
 const FileLabel = styled.span`
+  text-decoration: none !important;
   font-size: 14px;
-  color: #333;
+  color: black !important;
 `;
 
 const DownloadButton = styled.button`
@@ -114,6 +115,8 @@ const SaveButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   margin-left: 10px;
+  min-width: 80px; /* 버튼 최소 너비 */
+  text-align: center;
 
   &:hover {
     background-color: #218838;
@@ -134,6 +137,22 @@ const AddFileButton = styled.button`
   }
 `;
 
+const DeleteButton = styled.span`
+  color: #dc3545;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 10px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #dc3545;
+  }
+`;
+
 const Docs = () => {
   const { wrapperNo } = useParams();
   const user = useSelector((state) => state.user);
@@ -147,6 +166,7 @@ const Docs = () => {
   ]);
   const [isEditable, setIsEditable] = useState([false, false, false]);
   const [isColumnSaved, setIsColumnSaved] = useState([false, false, false]);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -155,33 +175,61 @@ const Docs = () => {
           `http://localhost:9090/docs/getProjectByWrapperNo?wrapperNo=${wrapperNo}`
         );
         setProject(response.data);
+  
         const columnsResponse = await axios.get(
           `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
         );
-        const fetchedColumns = columnsResponse.data;
-        
-        setColumnData(
-          fetchedColumns.map((col) => ({
-            columnName: col.columnName || "",
-            columnNo: col.columnNo || null,
-          }))
-        );
-        setFiles(fetchedColumns.map((col) => col.voList || []));
-        console.log("파일 정보 : " + JSON.stringify(files, null, 2))
-        setIsEditable(fetchedColumns.map(() => false));
-        setIsColumnSaved(fetchedColumns.map(() => true));
-        setColumns(fetchedColumns.map(() => true));
+        const fetchedColumns = columnsResponse.data || []; // 기본값 설정
+  
+        console.log("컬럼 정보 : " + JSON.stringify(fetchedColumns, null, 2));
+  
+        const totalColumns = 3; // 기본적으로 3개의 컬럼 슬롯을 가정
+        const fetchedColumnData = fetchedColumns.map((col) => ({
+          columnName: col.columnName || "",
+          columnNo: col.columnNo || null,
+        }));
+  
+        const updatedColumnData = [...fetchedColumnData];
+        for (let i = fetchedColumnData.length; i < totalColumns; i++) {
+          updatedColumnData.push({ columnName: "", columnNo: null });
+        }
+  
+        const updatedFiles = [...fetchedColumns.map((col) => col.voList || [])];
+        for (let i = fetchedColumns.length; i < totalColumns; i++) {
+          updatedFiles.push([]);
+        }
+  
+        const updatedEditable = [...fetchedColumns.map(() => false)];
+        for (let i = fetchedColumns.length; i < totalColumns; i++) {
+          updatedEditable.push(false);
+        }
+  
+        const updatedSaved = [...fetchedColumns.map(() => true)];
+        for (let i = fetchedColumns.length; i < totalColumns; i++) {
+          updatedSaved.push(false);
+        }
+  
+        const updatedColumnStates = [...fetchedColumns.map(() => true)];
+        for (let i = fetchedColumns.length; i < totalColumns; i++) {
+          updatedColumnStates.push(false); // 빈 슬롯은 "컬럼 추가하기" 버튼이 보이도록 설정
+        }
+  
+        setColumnData(updatedColumnData);
+        setFiles(updatedFiles);
+        setIsEditable(updatedEditable);
+        setIsColumnSaved(updatedSaved);
+        setColumns(updatedColumnStates);
       } catch (error) {
         console.error("컬럼 데이터 가져오기 실패:", error);
       }
     };
-
+  
     fetchProjects();
   }, [wrapperNo]);
 
   const handleAddColumn = (index) => {
     const updatedColumns = [...columns];
-    updatedColumns[index] = true; // 클릭된 컬럼 활성화
+    updatedColumns[index] = true;
     setColumns(updatedColumns);
 
     setColumnData((prev) => {
@@ -194,7 +242,7 @@ const Docs = () => {
 
     setIsEditable((prev) => {
       const updatedEditable = [...prev];
-      updatedEditable[index] = true; // 새로 추가된 컬럼은 수정 가능 상태로 설정
+      updatedEditable[index] = true;
       return updatedEditable;
     });
   };
@@ -290,8 +338,16 @@ const Docs = () => {
   
     if (!file) return;
   
+    const allowedExtensions = ['txt', 'pptx', 'docx', 'docs', 'xml', 'xlsx'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+  
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert(`허용되지 않는 파일 형식입니다. 다음 확장자만 업로드 가능합니다: ${allowedExtensions.join(', ')}`);
+      event.target.value = "";
+      return;
+    }
+  
     try {
-      // 서버에 파일이 존재하는지 확인
       const fileExistsResponse = await axios.get("http://localhost:9090/docs/checkFileExists", {
         params: {
           fileName: file.name,
@@ -300,23 +356,18 @@ const Docs = () => {
         },
       });
   
-  
-      // 파일이 이미 존재하면 덮어쓰기 여부 확인
       if (fileExistsResponse.data) {
-        const overwrite = window.confirm(
-          "파일이 이미 존재합니다. 덮어쓰시겠습니까?"
-        );
+        const overwrite = window.confirm("파일이 이미 존재합니다. 덮어쓰시겠습니까?");
         if (!overwrite) {
-          return; // 덮어쓰기 취소
+          return;
         }
       }
   
-      // 파일 업로드
       const formData = new FormData();
       formData.append("file", file);
       formData.append("uploadUserNo", uploadUserNo);
       formData.append("columnNo", columnNo);
-      formData.append("wrapperNo", wrapperNo); // 추가된 부분
+      formData.append("wrapperNo", wrapperNo);
   
       const response = await axios.post("http://localhost:9090/docs/upload", formData, {
         headers: {
@@ -326,13 +377,11 @@ const Docs = () => {
   
       alert("업로드 성공: " + response.data);
   
-      // 파일 정보 다시 불러오기
       const updatedColumnsResponse = await axios.get(
         `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
       );
       const updatedColumns = updatedColumnsResponse.data;
   
-      // 상태 업데이트
       setColumnData(
         updatedColumns.map((col) => ({
           columnName: col.columnName || "",
@@ -346,28 +395,25 @@ const Docs = () => {
     }
   };
   
+  
 
   const handleDownloadFile = async (fileName, columnIndex, fileIndex) => {
     try {
-      // 파일 정보에서 uploadPath 가져오기
       const uploadPath = files[columnIndex][fileIndex].uploadPath;
   
       if (!uploadPath) {
         alert("파일 경로를 가져오지 못했습니다.");
         return;
-      }
+     }
   
-      // 다운로드 요청
       const response = await axios.get("http://localhost:9090/docs/download", {
-        params: { filePath: uploadPath }, // uploadPath를 filePath로 전달
-        responseType: "blob", // 바이너리 데이터로 응답받기
+        params: { filePath: uploadPath }
       });
   
-      // 브라우저에서 파일 다운로드
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", fileName); // 파일 이름 설정
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -377,17 +423,52 @@ const Docs = () => {
     }
   };
   
-  const handleOpenFile = (columnIndex, fileIndex) => {
-    const file = files[columnIndex][fileIndex];
-    const uploadPath = file.uploadPath;
-  
-    if (!uploadPath) {
-      alert("파일 경로를 찾을 수 없습니다.");
+  const handleDeleteColumn = async (columnIndex) => {
+    const confirmDelete = window.confirm("컬럼을 정말로 삭제하시겠습니까?");
+    if (!confirmDelete) {
       return;
     }
   
-    // 새 탭으로 파일 열기
-    window.open(`http://localhost:9090/docs/view?filePath=${encodeURIComponent(uploadPath)}`, "_blank");
+    try {
+      const response = await axios.delete("http://localhost:9090/docs/deleteColumn", {
+        params: {
+          columnIndex: columnIndex,
+          wrapperNo: wrapperNo,
+        },
+      });
+  
+      if (response.status === 200) {
+        alert("컬럼이 삭제되었습니다.");
+  
+        // 삭제된 컬럼만 초기화
+        setColumnData((prev) =>
+          prev.map((col, idx) =>
+            idx === columnIndex ? { columnName: "", columnNo: null } : col
+          )
+        );
+  
+        setFiles((prev) =>
+          prev.map((fileList, idx) => (idx === columnIndex ? [] : fileList))
+        );
+  
+        setIsEditable((prev) =>
+          prev.map((editable, idx) => (idx === columnIndex ? false : editable))
+        );
+  
+        setIsColumnSaved((prev) =>
+          prev.map((saved, idx) => (idx === columnIndex ? false : saved))
+        );
+  
+        setColumns((prev) =>
+          prev.map((state, idx) => (idx === columnIndex ? false : state))
+        );
+      } else {
+        alert("컬럼 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("컬럼 삭제 오류:", error);
+      alert("컬럼 삭제 중 오류가 발생했습니다.");
+    }
   };
   
   
@@ -403,22 +484,20 @@ const Docs = () => {
                   <InputField
                     type="text"
                     placeholder={`컬럼 ${index + 1} 이름 입력`}
-                    value={columnData[index]?.columnName || ""} // 기본값 유지
+                    value={columnData[index]?.columnName || ""}
                     onChange={(e) => handleColumnInputChange(index, e.target.value)}
-                    disabled={!isEditable[index]} // 수정 가능 여부에 따라 입력 비활성화
+                    disabled={!isEditable[index]}
                   />
                   {isEditable[index] ? (
                     <SaveButton onClick={() => handleSaveColumn(index)}>저장</SaveButton>
                   ) : (
                     <SaveButton onClick={() => handleEditColumn(index)}>수정</SaveButton>
                   )}
+                  <DeleteButton onClick={()=>handleDeleteColumn(index)}> X </DeleteButton>
                 </div>
                 {files[index].map((file, fileIndex) => (
                   <FileActionContainer key={fileIndex}>
-                    <FileLabel
-                      onClick={() => handleOpenFile(index, fileIndex)}
-                      style={{ cursor: "pointer", textDecoration: "underline", color: "blue" }}
-                    >
+                    <FileLabel>
                       {file.docsName}
                     </FileLabel>
                     <DownloadButton onClick={() => handleDownloadFile(file.docsName, index, fileIndex)}>

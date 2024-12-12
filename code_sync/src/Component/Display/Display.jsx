@@ -68,7 +68,7 @@ const Display = () => {
             path="/myPage"
             element={
               <ProtectedRoute>
-                <MyPage />
+                <MyPage projects={projects} fetchProjects={fetchProjects} setProjects={setProjects}/>
               </ProtectedRoute>
             }
           />

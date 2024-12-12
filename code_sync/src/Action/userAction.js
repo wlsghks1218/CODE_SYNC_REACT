@@ -1,4 +1,4 @@
-import { LOGIN, LOGOUT } from "./type";
+import { LOGIN, LOGOUT, UPDATE_USER } from "./type";
 
 function login(user){
   return {
@@ -13,5 +13,12 @@ function logout() {
   };
 }
 
+function updateUser(updatedUser) {
+  return{
+    type: UPDATE_USER,
+    payload : updatedUser
+  };
+}
 
-export {login, logout}
+
+export {login, logout, updateUser}

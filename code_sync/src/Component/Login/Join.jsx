@@ -299,11 +299,11 @@ const Join = () => {
         <VerificationButton
           id="verificationSend"
           onClick={sendVerification}
-          disabled={isSendingVerification} // 전송 중 상태일 때 비활성화
+          disabled={isSendingVerification}
         >
           {isSendingVerification ? (
             <span>
-              <span className="spinner" /> {/* 스피너 */}
+              <span className="spinner" />
               <span className="text">전송 중...</span>
             </span>
           ) : (

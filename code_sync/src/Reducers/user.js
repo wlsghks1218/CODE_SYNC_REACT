@@ -1,4 +1,4 @@
-import { LOGIN, LOGOUT } from "../Action/type";
+import { LOGIN, LOGOUT, UPDATE_USER } from "../Action/type";
 
 const initialState = {
   isAuthenticated: false,
@@ -13,6 +13,9 @@ const user = (state = initialState, action) => {
     case LOGOUT:
       console.log("로그아웃 상태 업데이트");
       return { ...state, isAuthenticated: false, user: null };
+    case UPDATE_USER:
+      console.log("Updating user state:", action.payload);
+      return { ...state, user: action.payload };
     default:
       return state;
   }
