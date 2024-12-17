@@ -13,6 +13,7 @@ import History from "../Erd/History";
 import '../../Erd.css';
 import axios from "axios";
 import { v4 as uuidv4 } from 'uuid';
+import { useSelector } from "react-redux";
 
 const ErdDisplay = () => {
   const [tables, setTables] = useState([]);
@@ -32,7 +33,8 @@ const ErdDisplay = () => {
   const [userId, setUserId] = useState(null);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const userNo = queryParams.get('userNo');
+  const user = useSelector((state) => state.user);
+  const userNo = user.user.userNo;
 
   // 사용자 ID를 가져오는 함수
   async function getUserId() {

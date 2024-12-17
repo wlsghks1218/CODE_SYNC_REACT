@@ -75,7 +75,7 @@ const Display = () => {
           <Route path="/expiredPage" element={<ExpiredPage />} />
           <Route path="/alreadyJoined" element={<AlreadyJoined />} />
           <Route path="/erd/:erdNo" element={<ErdDisplay />} />
-          <Route path="/codeSync/:codeNo" element={<CodeSyncMain />} />
+          <Route path='/codeSync/:codeSyncNo' element={<CodeSyncMain data={user}/>}/>
           <Route path="/docs/:wrapperNo" element={<Docs />} />
         </Routes>
       </Body>
