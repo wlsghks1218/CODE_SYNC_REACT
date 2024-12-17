@@ -213,9 +213,11 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
           "http://localhost:9090/member/logout",
           { userId: user.user?.userId },
           {
-            headers: { withCredentials: true, "Content-Type": "application/json" },
+            withCredentials: true, // 쿠키를 포함하도록 설정
+            headers: { "Content-Type": "application/json" },
           }
         );
+        
         dispatch(logout());
         setProjects([]);
         console.log("로그아웃 후 프로젝트 : " + projects);

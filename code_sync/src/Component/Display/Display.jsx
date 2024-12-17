@@ -15,6 +15,8 @@ import CodeSyncMain from '../CodeSync/CodeSyncMain';
 import ErdDisplay from './ErdDisplay';
 import axios from 'axios';
 import UserAuthentication from '../MyPage/UserAuthentication';
+import ProjectLimit from '../Error/ProjectLimit';
+import InvalidProject from '../Error/InvalidProject';
 
 
 const DisplayWrapper = styled.div`
@@ -76,6 +78,8 @@ const Display = () => {
           />
           <Route path="/expiredPage" element={<ExpiredPage />} />
           <Route path="/alreadyJoined" element={<AlreadyJoined />} />
+          <Route path="/projectLimit" element={<ProjectLimit />} />
+          <Route path="/invalidProject" element={<InvalidProject />} />
           <Route path="/erd/:erdNo" element={<ErdDisplay />} />
           <Route path='/codeSync/:codeSyncNo' element={<CodeSyncMain data={user}/>}/>
           <Route path="/docs/:wrapperNo" element={<Docs />} />

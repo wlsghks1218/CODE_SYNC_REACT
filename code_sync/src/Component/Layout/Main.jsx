@@ -607,7 +607,7 @@ const Main = ({ projects, fetchProjects }) => {
                           cursor: 'pointer',
                         }}
                         onClick={() => {
-                          navigator.clipboard.writeText("http://localshost:9090/project/"+selectedProject.token);
+                          navigator.clipboard.writeText("http://localhost:9090/project/"+selectedProject.token);
                           alert('초대 코드가 클립보드에 복사되었습니다!');
                         }}
                       >
