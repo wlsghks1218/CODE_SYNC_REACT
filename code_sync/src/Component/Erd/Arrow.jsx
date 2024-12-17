@@ -1,10 +1,10 @@
   import React from 'react';
 
 const Arrow = ({ startPosition, endPosition }) => {
-  const startX = startPosition.x + 170;
-  const startY = startPosition.y + 65;
-  const endX = endPosition.x + 175;
-  const endY = endPosition.y + 65;
+  const startX = startPosition.x + 155;
+  const startY = startPosition.y + 50;
+  const endX = endPosition.x + 155;
+  const endY = endPosition.y + 50;
 
   // 꺾이는 지점 계산 (X축 중심에 따라 설정)
   const bendX = (startX + endX) / 2; 

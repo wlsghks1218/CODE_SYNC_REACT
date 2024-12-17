@@ -9,32 +9,19 @@ const Canvas = ({ children, viewport, startDrag, stopDrag, onDrag, setIsDragging
     startDrag(e);
   };
 
-  const handleWheel = (e) => {
-    // wheel 이벤트가 발생했을 때 줌 조정
-    e.preventDefault(); // 기본 스크롤 동작을 막음
-
-    // 마우스 휠 방향에 따라 스케일 변경
-    if (e.deltaY < 0) {
-      setScale((prevScale) => Math.min(prevScale * 1.1, 2)); // 줌 인 (최대 2배)
-    } else {
-      setScale((prevScale) => Math.max(prevScale / 1.1, 0.5)); // 줌 아웃 (최소 0.5배)
-    }
-  };
-
   return (
     <CanvasContainer
       className="canvas"
       onMouseDown={handleMouseDown}
       onMouseUp={stopDrag}
       onMouseMove={onDrag}
-      onWheel={handleWheel} // wheel 이벤트 추가
       style={{
         cursor: "grab",
       }}
     >
       <CanvasContent
         style={{
-          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${scale})`, // scale 적용
+          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${scale})`, 
         }}
       >
         {children}

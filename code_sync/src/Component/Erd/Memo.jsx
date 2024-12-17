@@ -2,71 +2,60 @@ import React, { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 import styled from "styled-components";
 
-const Memo = ({ memo, updateMemoPosition, updateMemo, deleteMemo, }) => {
-    const [text, setText] = useState(memo.text);
-    const [title, setTitle] = useState(memo.title || "Untitled");
-    const [isEditingTitle, setIsEditingTitle] = useState(false); // 제목 편집 상태
+const Memo = ({ memo, updateMemoPosition, updateMemo, deleteMemo }) => {
+    const [content, setContent] = useState(memo.content);
+    const [position, setPosition] = useState(memo.position);
+
+    const [isEditingContent, setIsEditingContent] = useState(false);
 
     const memoRef = useRef(null);
     const contentRef = useRef(null);
 
-    // 제목 저장 및 편집 상태 종료
-    const handleTitleBlur = (e) => {
-        setTitle(e.target.value || "Untitled");
-        setIsEditingTitle(false); // 편집 모드 종료
-    };
-
-    // 제목을 클릭하면 편집 모드로 변경
-    const handleTitleClick = () => {
-        setIsEditingTitle(true);
-    };
-
-    // 내용이 수정된 후, 커서가 다른 곳으로 이동하면 상태 업데이트
-    const handleTextBlur = () => {
-        setText(contentRef.current.innerText);
-    };
-
-    // 상태가 변경되면 updateMemo 호출
     useEffect(() => {
-        if (memo.text !== text || memo.title !== title) {
-            updateMemo(memo.id, { text, title });
-        }
-    }, [text, title, memo.id, memo.text, memo.title, updateMemo]);
+        setPosition(memo.position);
+        setContent(memo.content);
+    }, [memo.position, memo.content]);
 
-    // 메모 삭제 기능
+
+    const handleBlur = (field) => {
+        if (field === "content" && content !== memo.content) {
+            updateMemo(memo.id, { content });
+            setIsEditingContent(false); 
+        }
+    };
+
+    const handleContentClick = () => {
+        setIsEditingContent(true); 
+    };
+
     const handleDeleteMemo = (e) => {
-        e.stopPropagation(); // 클릭 이벤트 전파 방지
-        deleteMemo(memo.id); // 삭제 동작
+        e.stopPropagation(); 
+        deleteMemo(memo.id); 
     };
 
     return (
         <Draggable
             nodeRef={memoRef}
-            defaultPosition={memo.position}
+            position={position}
             onStop={(e, data) => {
+                setPosition({ x: data.x, y: data.y });
                 updateMemoPosition(memo.id, { x: data.x, y: data.y });
             }}
         >
             <MemoText ref={memoRef} className="memo">
-                {isEditingTitle ? (
-                    <TitleInput
-                        type="text"
-                        defaultValue={title}
-                        onBlur={handleTitleBlur} // 포커스 해제 시 저장
+                {isEditingContent? (
+                    <ContentInput
+                        ref={contentRef}
+                        value={content}
+                        onBlur={() => handleBlur("content")} 
+                        onChange={(e) => setContent(e.target.value)} 
                         autoFocus
                     />
                 ) : (
-                    <MemoTitle onClick={handleTitleClick}>{title}</MemoTitle>
+                    <MemoContent onClick={handleContentClick}>{content}</MemoContent>
                 )}
+
                 <DeleteButton onClick={handleDeleteMemo}>X</DeleteButton>
-                <MemoContent
-                    ref={contentRef}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onBlur={handleTextBlur}
-                >
-                    {text}
-                </MemoContent>
             </MemoText>
         </Draggable>
     );
@@ -74,8 +63,9 @@ const Memo = ({ memo, updateMemoPosition, updateMemo, deleteMemo, }) => {
 
 export default Memo;
 
+
 const MemoText = styled.div`
-    position: absolute; /* 위치를 절대적으로 설정 */
+    position: absolute;
     padding: 15px;
     background-color: #ffeb99;
     border: 1px solid #ffd700;
@@ -91,16 +81,19 @@ const MemoText = styled.div`
     background-position: 0 0, 0 0, 0 0, 0 0;
 `;
 
-const MemoTitle = styled.div`
+const MemoContent = styled.div`
     font-weight: bold;
     font-size: 12px;
-    min-height: 20px;
+    min-height: 100px;
     outline: none;
     display: flex;
-    justify-content: flex-start;
-    align-items: center;
+    flex-direction: column; /* 자식 요소가 세로 방향으로 배치됩니다 */
+    justify-content: flex-start; /* 위쪽부터 시작하도록 설정합니다 */
+    align-items: flex-start; /* 왼쪽 정렬 */
+    padding-top: 15px;
     color: #4f4f4f;
     cursor: pointer;
+    white-space: pre-wrap; /* 텍스트의 줄 바꿈 유지 */
 
     :empty:before {
         content: "Untitled";
@@ -108,32 +101,16 @@ const MemoTitle = styled.div`
     }
 `;
 
-const TitleInput = styled.input`
+const ContentInput = styled.textarea`
     font-weight: bold;
     font-size: 12px;
-    min-height: 20px;
+    min-height: 100px;
     border: none;
     outline: none;
     background: none;
+    padding-top: 15px;
     color: #4f4f4f;
     width: 100%;
-`;
-
-const MemoContent = styled.div`
-    font-size: 10px;
-    min-height: 50px;
-    padding: 5px;
-    border-top: 1px solid #ffd700;
-    margin-top: 5px;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    outline: none;
-    color: #4f4f4f;
-
-    :empty:before {
-        content: "Click to edit";
-        color: #bbb;
-    }
 `;
 
 const DeleteButton = styled.button`
@@ -141,13 +118,13 @@ const DeleteButton = styled.button`
     color: gray;
     border: none;
     border-radius: 4px;
-    padding: 5px 10px;
+    padding: 5px 5px;
     font-size: 12px;
     cursor: pointer;
     margin-left: 10px;
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 5px;
+    right: 5px;
 
     :hover {
         background-color: #ff1a1a;

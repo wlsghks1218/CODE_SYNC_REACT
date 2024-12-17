@@ -1,0 +1,37 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+  
+  .toolbar {
+    background-color: #f4f4f4;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .content {
+    display: flex;
+    flex: 1;
+  }
+  
+  .sidebar {
+    width: 200px;
+    background-color: #f9f9f9;
+    border-right: 1px solid #ccc;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .canvas {
+    flex: 1;
+    background-color: #f0f0f0;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  
+  

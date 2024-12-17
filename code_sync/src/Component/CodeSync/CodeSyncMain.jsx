@@ -20,24 +20,31 @@ const ContentWrapper = styled.div`
   overflow: auto;  // 콘텐츠가 넘칠 경우 스크롤
 `;
 
-const CodeSyncMain = () => {
+const CodeSyncMain = ({data}) => {
   const [fileContent, setFileContent] = useState('');
+  const [fileNo, setFileNo] = useState(null);
 
-  const handleFileContentChange = (content) => {
+  const handleFileContentChange = ({ content, fileNo }) => {
     setFileContent(content);
+    setFileNo(fileNo); // fileNo 별도로 관리
   };
+
 
   return (
     <MainContainer>
-      <Header/>
+      <Header />
       <ContentWrapper>
-        <SidebarLeft onFileContentChange={handleFileContentChange} />
-        <MainContent fileContent={fileContent} />
+        <SidebarLeft
+          onFileContentChange={handleFileContentChange}
+          data={data}
+        />
+        <MainContent fileContent={fileContent} fileNo={fileNo} data={data} />
         <SidebarRight />
       </ContentWrapper>
       <Footer />
     </MainContainer>
   );
 };
+
 
 export default CodeSyncMain;

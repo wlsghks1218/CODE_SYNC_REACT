@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import axios from 'axios';
 import { Controlled as CodeMirror } from 'react-codemirror2'; // react-codemirror2 import
 import 'codemirror/lib/codemirror.css'; // Codemirror 스타일
 import 'codemirror/mode/javascript/javascript'; // JavaScript 구문 강조
@@ -31,9 +30,12 @@ const CodeMirrorWrapper = styled.div`
   }
 `;
 
-const MainContent = ({ fileContent }) => {
+const MainContent = ({ fileContent, fileNo ,data }) => {
   const [code, setCode] = useState('');
   const [showLineNumbers, setShowLineNumbers] = useState(false);  // 줄 번호 표시 여부 상태
+  const userNo = data.user.userNo;
+
+  console.log("파일번호는? " + fileNo);
 
   useEffect(() => {
     if (fileContent) {
@@ -44,16 +46,14 @@ const MainContent = ({ fileContent }) => {
     }
   }, [fileContent]);
 
-  const handleCodeChange = (newCode) => {
-    console.log(newCode);
-    setCode(newCode);
-  };
+  useEffect(() => {
+    if (fileNo && code) {
+      localStorage.setItem(fileNo.toString(), code); // fileNo를 숫자로 저장
+    }
+  }, [fileNo, code]);
 
-  const saveCode = () => {
-    // 코드 저장 API 호출 예시
-    axios.put('/api/save', { code })
-      .then(response => console.log('Code saved'))
-      .catch(error => console.error('Error saving code:', error));
+  const handleCodeChange = (newCode) => {
+    setCode(newCode);
   };
 
   return (

@@ -379,9 +379,9 @@ const Main = ({ projects, fetchProjects }) => {
     };
 
     function displayTime(unixTimeStamp) {
-        if (!unixTimeStamp) return ''; // 값 검증
-        const myDate = new window.Date(unixTimeStamp); // window.Date 사용
-        if (isNaN(myDate)) return ''; // 유효하지 않은 날짜 처리
+        if (!unixTimeStamp) return '';
+        const myDate = new window.Date(unixTimeStamp);
+        if (isNaN(myDate)) return '';
         const y = myDate.getFullYear();
         const m = String(myDate.getMonth() + 1).padStart(2, '0');
         const d = String(myDate.getDate()).padStart(2, '0');

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import ContextMenu from './ContextMenu';
+import { useParams } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
 
 const SidebarContainer = styled.div`
-  width: 250px;
+  width: ${(props) => props.width}px;
   background-color: #f4f4f4;
   padding: 10px;
-  overflow-y: auto;
+  position: relative;
+  transition: width 0.2s ease;
 `;
 
 const FileTreeContainer = styled.div`
@@ -30,34 +34,125 @@ const Button = styled.button`
   }
 `;
 
-const SidebarLeft = ({ onFileContentChange }) => {
+const Text = styled.div`
+  font-size: 16px;
+  color: #777;
+  text-align: center;
+  margin-top: 50px;
+`;
+
+const Resizer = styled.div`
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: ew-resize;
+`;
+
+const SidebarLeft = ({ onFileContentChange , data }) => {
+  const { codeSyncNo } = useParams();
   const [folderTree, setFolderTree] = useState(null);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+  const [noDataFound, setNoDataFound] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+
+  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenuItems, setContextMenuItems] = useState([]);
+  const [socket, setSocket] = useState(null);  // 웹소켓 연결 객체
+  const [lockStatusMap, setLockStatusMap] = useState(new Map());  // 파일 잠금 상태 관리
+  const userNo = data.user.userNo;
+
+  // WebSocket 연결을 설정하는 함수
+  // WebSocket 연결 설정
+  const connectWebSocket = () => {
+    if (socket) {
+      socket.close(); // 기존 연결이 있다면 닫기
+    }
+
+    const ws = new WebSocket(`ws://localhost:9090/codeSync.do?codeSyncNo=${codeSyncNo}`);
+    
+    ws.onopen = () => {
+      console.log("WebSocket Connected");
+      setSocket(ws);
+    };
+
+    ws.onmessage = async (event) => {
+      console.log("Received message:", event.data);
+      const message = JSON.parse(event.data);
+    
+      // 'status'가 'update'인 경우만 처리
+      if (message.status === "update") {
+        const filePath = message.file.filePath;
+        const locked = message.file.lockedBy !== 0;
+    
+        console.log(`Lock status update for ${filePath}: ${locked ? 'Locked' : 'Unlocked'}`);
+    
+        // 상태 업데이트
+        setLockStatusMap(prevState => {
+          const newMap = new Map(prevState);
+          newMap.set(filePath, locked);
+          return newMap;
+        });
+    
+        // 잠금 상태가 변경된 후 폴더 구조를 다시 가져옵니다.
+        fetchFolderStructureFromDB(codeSyncNo);  // 폴더 구조를 새로 불러오기
+      }
+    };
+    ws.onclose = () => {
+      console.log("WebSocket Disconnected");
+      setTimeout(connectWebSocket, 3000);  // 재연결 시도
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket Error:", error);
+      ws.close();
+    };
+  };
 
   useEffect(() => {
-    // 컴포넌트 로딩 시 DB에서 폴더 트리 구조 불러오기
-    fetchFolderStructureFromDB();
-  }, []);
+    if (codeSyncNo) {
+      connectWebSocket();  // WebSocket 연결 시도
+    }
+    
+    return () => {
+      if (socket) {
+        socket.close();  // 컴포넌트 언마운트 시 WebSocket 연결 종료
+      }
+    };
+  }, [codeSyncNo]);
 
-  // DB에서 폴더 트리 구조 불러오기
-  const fetchFolderStructureFromDB = async () => {
+  useEffect(() => {
+    if (codeSyncNo) {
+      fetchFolderStructureFromDB(codeSyncNo);
+    }
+  }, [codeSyncNo]);
+
+
+  const fetchFolderStructureFromDB = async (codeSyncNo) => {
+    setIsLoading(true);
     try {
-      const codeSyncNo = 1; // 하드코딩된 codeSyncNo 값
+      console.log(codeSyncNo);
+  
       const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
       if (response.status === 200) {
-        const data = response.data; // 서버로부터 받은 데이터
-        console.log(data);
-  
-        // 폴더 및 파일 데이터 변환
-        const rootFolder = buildFolderStructureFromResponse(data);
-  
-        // 변환된 폴더 구조를 state에 설정
-        setFolderTree(rootFolder);
+        const data = response.data;
+        if (data.folders.length === 0 && data.files.length === 0) {
+          setNoDataFound(true);
+          setFolderTree(null);
+        } else {
+          const rootFolder = buildFolderStructureFromResponse(data);
+          setFolderTree(rootFolder);
+          setNoDataFound(false);
+        }
       } else {
         alert('Failed to fetch folder structure from database');
       }
     } catch (error) {
-      console.error('Error fetching folder structure from DB:', error);
+      setNoDataFound(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -65,7 +160,6 @@ const SidebarLeft = ({ onFileContentChange }) => {
     const folderMap = new Map();
     const fileMap = new Map();
   
-    // DB에서 받아온 폴더 데이터 처리
     data.folders.forEach((folder) => {
       const folderNode = {
         type: 'folder',
@@ -73,38 +167,34 @@ const SidebarLeft = ({ onFileContentChange }) => {
         path: folder.folderPath,
         key: folder.folderPath,
         children: [],
-        folderNo: folder.folderNo, // folderNo 추가
+        folderNo: folder.folderNo,
+        lockedBy: folder.lockedBy,  // 잠금 상태 정보 추가
       };
-      folderMap.set(folder.folderNo, folderNode); // 폴더를 folderNo를 기준으로 저장
+      folderMap.set(folder.folderNo, folderNode);
     });
-  
-    // DB에서 받아온 파일 데이터 처리
+    
     data.files.forEach((file) => {
       const fileNode = {
         type: 'file',
         name: file.fileName,
         path: file.filePath,
-        folderNo: file.folderNo, // file과 연결할 folderNo
+        folderNo: file.folderNo,
+        content: file.content,
+        lockedBy: file.lockedBy,  // 잠금 상태 정보 추가
       };
-      // 파일은 여러 개 있을 수 있기 때문에 바로 연결하지 않고
-      // 나중에 폴더별로 파일을 넣을 때 묶어서 처리하도록 함
       if (!fileMap.has(file.folderNo)) {
-        fileMap.set(file.folderNo, []); // 처음 보았으면 배열로 초기화
+        fileMap.set(file.folderNo, []);
       }
-      fileMap.get(file.folderNo).push(fileNode); // 해당 폴더에 파일 추가
+      fileMap.get(file.folderNo).push(fileNode);
     });
   
-    // 폴더와 파일을 folderNo를 기준으로 연결
     data.folders.forEach((folder) => {
       const folderNode = folderMap.get(folder.folderNo);
-  
-      // 해당 폴더에 관련된 파일들 추가
       const relatedFiles = fileMap.get(folder.folderNo);
       if (relatedFiles) {
-        folderNode.children.push(...relatedFiles); // 파일을 해당 폴더에 추가
+        folderNode.children.push(...relatedFiles);
       }
   
-      // 부모 폴더와 연결
       if (folder.parentFolderId !== null) {
         const parentFolder = data.folders.find(f => f.folderNo === folder.parentFolderId);
         if (parentFolder) {
@@ -116,57 +206,75 @@ const SidebarLeft = ({ onFileContentChange }) => {
       }
     });
   
-    // 최상위 폴더 (Root)를 찾아 반환
     const rootFolder = data.folders.find((folder) => folder.folderName === 'Root');
     return folderMap.get(rootFolder.folderNo);
   };
   
-  const handleFolderSelect = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const filteredFiles = files.filter(
-        (file) => !file.name.endsWith('.class') && !file.webkitRelativePath.includes('target') && !file.webkitRelativePath.includes('.settings')
-      );
-      if (filteredFiles.length > 0) {
-        const folderStructure = buildFolderStructure(filteredFiles);
-        setFolderTree(folderStructure);
+  // 파일 선택 input ref 추가
+  const fileInputRef = React.useRef();
 
-        console.log(folderStructure);
-
-        // 폴더 구조를 서버로 전송
-        await sendFolderStructureToServer(folderStructure);
-      } else {
-        alert("No valid files selected (excluding .class, target, .settings files)");
-      }
+  const handleFolderSelect = (e) => {
+    const files = fileInputRef.current.files ? Array.from(fileInputRef.current.files) : [];
+    if (files.length === 0) {
+      alert("No files selected or browser does not support folder upload.");
+      return;
     }
+  
+    const filteredFiles = files.filter(
+      (file) =>
+        !file.name.endsWith('.class') &&
+        !file.webkitRelativePath.includes('target') &&
+        !file.webkitRelativePath.includes('.settings')
+    );
+  
+    if (filteredFiles.length > 0) {
+      const folderStructure = buildFolderStructure(filteredFiles);
+      setFolderTree(folderStructure);
+  
+      // 파일을 서버에 전송하고, 로딩 시작
+      setIsLoading(true);  // 로딩 시작
+  
+      sendFolderStructureToServer(folderStructure).then(() => {
+        setIsLoading(false);  // 로딩 완료
+        fetchFolderStructureFromDB(codeSyncNo);  // 업로드 후 폴더 구조 다시 가져오기
+      });
+    } else {
+      alert("No valid files selected (excluding .class, target, .settings files)");
+    }
+  };
+
+  const handleFileInputClick = () => {
+    // 파일 입력 요소 클릭
+    fileInputRef.current.click();
   };
 
   const sendFolderStructureToServer = async (folderStructure) => {
     const folders = [];
     const files = [];
-    const codeSyncNo = 2; // 하드코딩된 CodeSyncNo 값
-    
-    let currentId = 1; // 폴더에 ID를 할당하기 위한 카운터
-    
+    console.log("폴더구성용 코드싱크넘버 : " + codeSyncNo);
+
+
+    let currentId = 1;
+
     const traverseFolderStructure = (node, parentFolderId = null) => {
       if (node.type === 'folder') {
-        const folderId = currentId++; // 각 폴더에 고유 ID 부여
+        const folderId = currentId++;
         folders.push({
           folderName: node.name,
           folderPath: node.path,
           parentFolderId: parentFolderId,
-          codeSyncNo, // 하드코딩된 CodeSyncNo
-          folderId, // 폴더 ID를 포함시킴
+          codeSyncNo,
+          folderId,
         });
 
-        node.children.forEach((child) => traverseFolderStructure(child, folderId)); // 자식 폴더에 해당 ID를 전달
+        node.children.forEach((child) => traverseFolderStructure(child, folderId));
       } else if (node.type === 'file') {
         files.push({
           fileName: node.name,
           filePath: node.path,
           extension: node.name.split('.').pop(),
-          content: null, // 일단 null로 설정, 이후 FileReader로 읽어서 채움
-          file: node.file, // File 객체를 추가로 저장
+          content: null,
+          file: node.file,
           codeSyncNo,
         });
       }
@@ -174,32 +282,28 @@ const SidebarLeft = ({ onFileContentChange }) => {
 
     traverseFolderStructure(folderStructure);
 
-    // FileReader를 사용해 파일 내용 읽기
     const readFileContents = (fileEntry) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          fileEntry.content = reader.result; // 파일 내용을 저장
+          fileEntry.content = reader.result;
           resolve();
         };
         reader.onerror = (error) => {
           console.error('Error reading file:', fileEntry.fileName, error);
           reject(error);
         };
-        reader.readAsText(fileEntry.file); // 파일을 텍스트로 읽기
+        reader.readAsText(fileEntry.file);
       });
     };
 
     try {
-      // 모든 파일의 내용을 비동기로 읽음
       await Promise.all(files.map(readFileContents));
 
-      // 파일 객체에서 file 속성 제거 (직렬화 오류 방지)
       files.forEach((file) => delete file.file);
 
       const folderStructure = { folders, files };
 
-      // 서버로 전송 (axios 사용)
       const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
@@ -217,28 +321,34 @@ const SidebarLeft = ({ onFileContentChange }) => {
   };
 
   const buildFolderStructure = (files) => {
-    const root = { type: 'folder', name: 'Root', path: 'Root', children: [] }; // 최상위 폴더
+    const root = { type: 'folder', name: 'Root', path: 'Root', children: [] };
     const folderMap = new Map();
     folderMap.set('Root', root);
-  
+
     files.forEach((file) => {
       const parts = file.webkitRelativePath.split('/');
       let current = root;
-  
+
       parts.forEach((part, index) => {
-        const isFile = index === parts.length - 1; // 마지막 파트가 파일인지 확인
-  
+        const isFile = index === parts.length - 1;
+
         if (isFile) {
-          // 파일 처리
           const fileEntry = {
             type: 'file',
             name: part,
             path: file.webkitRelativePath,
-            file, // 원본 File 객체 저장
+            file,
+            content: null,
           };
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            fileEntry.content = reader.result;
+          };
+          reader.readAsText(file);
+
           current.children.push(fileEntry);
         } else {
-          // 폴더 처리
           let folder = current.children.find(
             (child) => child.type === 'folder' && child.name === part
           );
@@ -256,8 +366,8 @@ const SidebarLeft = ({ onFileContentChange }) => {
         }
       });
     });
-  
-    console.log("Generated Folder Structure from Uploaded Files:", JSON.stringify(root, null, 2)); // 디버깅용
+
+    console.log("Generated Folder Structure from Uploaded Files:", JSON.stringify(root, null, 2));
     return root;
   };
 
@@ -273,62 +383,180 @@ const SidebarLeft = ({ onFileContentChange }) => {
     });
   };
 
-  const handleFileClick = (file) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      onFileContentChange(reader.result); // 파일 내용 전달
-    };
-    reader.onerror = (error) => {
-      console.error('Error reading file:', error);
-    };
-    reader.readAsText(file); // 파일을 텍스트로 읽음
+    const handleFileClick = async (file) => {
+    const { path } = file;
+    
+    try {
+      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+        folderNo: file.folderNo,
+        fileName: file.name,
+      });
+  
+      const fileNo = response.data;
+      if (fileNo) {
+        console.log('Retrieved fileNo:', fileNo);
+        const lockedBy = userNo;
+
+        
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          const message = {
+            code: "3",  // 잠금 요청을 위한 코드
+            codeSyncNo,
+            fileNo,
+            lockedBy,
+            filePath: file.path,  // 파일 경로 추가
+          };
+          socket.send(JSON.stringify(message));  // 잠금 요청 전송
+        } else {
+          console.warn("WebSocket is not open. Unable to send lock request.");
+        }
+
+        onFileContentChange({
+          content: file.content,
+          fileNo: fileNo,
+        });
+      } else {
+        alert('해당 파일 번호를 가져올 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('파일 정보를 가져오는 중 오류 발생:', error);
+      alert('파일 정보를 불러오는 데 실패했습니다.');
+    }
+  };
+
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    
+    const menuItems = item.type === 'folder' ? ['Open Folder', 'Delete Folder'] : ['Open File', 'Delete File'];
+
+    const menuWidth = 150;
+    const menuHeight = 25 * menuItems.length;
+
+    let adjustedX = e.clientX;
+    let adjustedY = e.clientY;
+
+    const maxWidth = window.innerWidth;
+    const maxHeight = window.innerHeight;
+
+    if (adjustedX + menuWidth > maxWidth) {
+      adjustedX = maxWidth - menuWidth;
+    }
+
+    if (adjustedX < 0) {
+      adjustedX = 0;
+    }
+
+    if (adjustedY - menuHeight < 0) {
+      adjustedY = 0;
+    } else {
+      adjustedY -= menuHeight;
+    }
+
+    setContextMenu({ x: adjustedX, y: adjustedY });
+    setContextMenuItems(menuItems);
+  };
+
+  const handleContextMenuItemClick = (item) => {
+    console.log(`Clicked on ${item}`);
+    setContextMenu(null);
   };
 
   const renderFolder = (node, parentPath = "") => {
     if (!node) return null;
   
-    const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name; // 고유 경로 생성
+    const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
     const isExpanded = expandedFolders.has(currentPath);
+    
+    // 'lockedBy' 값이 null이 아니면 잠금 상태로 표시
+    const isLocked = node.lockedBy !== 0; // lockedBy 값이 0이 아니면 잠금 상태
   
     return (
-      <div style={{ marginLeft: node.type === "folder" ? "10px" : "20px" }} key={currentPath}>
+      <div
+        style={{ marginLeft: node.type === "folder" ? "10px" : "20px" }}
+        key={currentPath}
+        onContextMenu={(e) => handleContextMenu(e, node)}
+      >
         {node.type === "folder" ? (
           <div
             style={{ fontWeight: "bold", margin: "2px 0", cursor: "pointer" }}
             onClick={() => toggleFolder(currentPath)}
           >
             <span>{isExpanded ? "-" : "+"}</span> {node.name}
+            {/* 폴더에는 자물쇠 아이콘을 표시하지 않음 */}
           </div>
         ) : (
-          // 파일 노드 렌더링
-          <div
-            style={{ margin: "2px 0", cursor: "pointer" }}
-            onClick={() => handleFileClick(node.file)}
-          >
-            📄 {node.name}
-          </div>
+          node.name !== '.classpath' && (
+            <div
+              style={{ margin: "2px 0", cursor: "pointer", display: "flex", alignItems: "center" }}
+              onClick={() => handleFileClick(node)}
+            >
+              📄 {node.name}
+              {isLocked && <span style={{ marginLeft: "5px", color: "red", fontSize: "16px" }}>🔒</span>}  {/* 파일에만 자물쇠 표시 */}
+            </div>
+          )
         )}
-        {/* 폴더 확장 시 자식 요소 렌더링, 자식 순서 뒤집기 */}
         {isExpanded &&
           node.children &&
-          [...node.children].reverse().map((child) => renderFolder(child, currentPath))} {/* 배열 복사 후 reverse */}
+          [...node.children].reverse().map((child) => renderFolder(child, currentPath))}
       </div>
     );
   };
+  
+  
+  
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (e) => {
+      const newWidth = Math.max(startWidth + e.clientX - startX, 200);
+      setSidebarWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
   return (
-    <SidebarContainer>
-      <Button onClick={() => document.getElementById('folderInput').click()}>Upload Files</Button>
+    <SidebarContainer width={sidebarWidth}>
+      {folderTree === null && (
+        <Button onClick={handleFileInputClick}>Upload Folder</Button>
+      )}
+
       <input
         type="file"
-        id="folderInput"
-        multiple
+        ref={fileInputRef}
+        style={{ display: 'none' }}
         webkitdirectory="true"
         onChange={handleFolderSelect}
-        style={{ display: "none" }}
+        multiple
       />
+
       <FileTreeContainer>
-        {folderTree ? renderFolder(folderTree) : "Loading..."}
+        {isLoading ? (
+          <LoadingSpinner />  // 로딩 중이면 스피너를 표시
+        ) : noDataFound ? (
+          <Text>select and upload folder</Text>
+        ) : (
+          renderFolder(folderTree)
+        )}
       </FileTreeContainer>
+      <Resizer onMouseDown={handleResizeStart} />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenuItems}
+          onItemClick={handleContextMenuItemClick}
+        />
+      )}
     </SidebarContainer>
   );
 };

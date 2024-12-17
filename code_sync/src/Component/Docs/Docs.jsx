@@ -257,9 +257,8 @@ const Docs = () => {
     }
   
     try {
-      // 삭제 요청
       const response = await axios.delete("http://localhost:9090/docs/delete", {
-        params: { filePath: uploadPath }, // uploadPath를 전달
+        params: { filePath: uploadPath },
       });
   
       if (response.status === 200) {
@@ -293,7 +292,7 @@ const Docs = () => {
   
     setIsEditable((prev) => {
       const updatedEditable = [...prev];
-      updatedEditable[index] = false; // 저장 후 수정 불가능 상태로 변경
+      updatedEditable[index] = false;
       return updatedEditable;
     });
   
@@ -440,7 +439,6 @@ const Docs = () => {
       if (response.status === 200) {
         alert("컬럼이 삭제되었습니다.");
   
-        // 삭제된 컬럼만 초기화
         setColumnData((prev) =>
           prev.map((col, idx) =>
             idx === columnIndex ? { columnName: "", columnNo: null } : col
