@@ -96,6 +96,7 @@ const Login = () => {
         },
         {
           headers: { "Content-Type": "application/json" },
+          withCredentials: true, // 쿠키를 포함하도록 설정
           maxRedirects: 0, // 리다이렉트를 방지
         }
       );
@@ -113,13 +114,8 @@ const Login = () => {
       console.error("로그인 오류: ", error);
       setIsValid(false);
     }
-    // if (response.ok) {
-    //   const { token } = await response.json();
-    //   localStorage.setItem("token", token); // JWT 저장
-    // } else {
-    //   console.error("로그인 실패");
-    // }
   };
+  
 
   return (
     <Container>

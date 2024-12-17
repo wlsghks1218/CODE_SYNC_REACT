@@ -14,6 +14,8 @@ import Docs from '../Docs/Docs';
 import CodeSyncMain from '../CodeSync/CodeSyncMain';
 import ErdDisplay from './ErdDisplay';
 import axios from 'axios';
+import UserAuthentication from '../MyPage/UserAuthentication';
+
 
 const DisplayWrapper = styled.div`
   margin: auto;
@@ -77,6 +79,7 @@ const Display = () => {
           <Route path="/erd/:erdNo" element={<ErdDisplay />} />
           <Route path='/codeSync/:codeSyncNo' element={<CodeSyncMain data={user}/>}/>
           <Route path="/docs/:wrapperNo" element={<Docs />} />
+          <Route path="/user-auth" element={<UserAuthentication />} />
         </Routes>
       </Body>
       <Footer />

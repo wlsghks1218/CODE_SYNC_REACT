@@ -213,7 +213,7 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
           "http://localhost:9090/member/logout",
           { userId: user.user?.userId },
           {
-            headers: { "Content-Type": "application/json" },
+            headers: { withCredentials: true, "Content-Type": "application/json" },
           }
         );
         dispatch(logout());
