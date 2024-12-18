@@ -2,6 +2,12 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useSelector } from "react-redux";
+
+const Content = styled.div`
+  display: flex;
+
+`;
 
 const BannerWrapper = styled.div`
   display: grid;
@@ -14,9 +20,24 @@ const BannerWrapper = styled.div`
   margin: 0 auto;
 `;
 
+const StyledTd1 = styled.td`
+  text-align: left;
+  margin-right: 10px;
+`;
+
+const StyledTd2 = styled.td`
+  text-align: left;
+  margin-right: 10px;
+  font-weight:bold;
+`;
+
+const ProjectInfoWrapper = styled.div`
+
+`;
+
 const Banner = styled.div`
-  width: 250px;
-  height: 200px;
+  width: 100px;
+  height: 100px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -36,8 +57,51 @@ const Banner = styled.div`
   }
 `;
 
-const ProjectDetailBanners = ({ projectNo }) => {
+const ModalBackground = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+`;
+
+const ModalContent = styled.div`
+  width: 800px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+`;
+
+const ProjectDelTd = styled.td`
+  text-align: center; /* 텍스트를 가운데 정렬 */
+  padding: 10px 0;
+`;
+
+const ProjectDeleteButton = styled.button`
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+
+  &:hover {
+    background-color: #c82333;
+  }
+`;
+const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const navigate = useNavigate();
+  const user = useSelector((state) => state.user);
+  const [project, setProject] = useState(null);
   const [routes, setRoutes] = useState({
     erdNo: null,
     codeNo: null,
@@ -48,6 +112,13 @@ const ProjectDetailBanners = ({ projectNo }) => {
     console.log(projectNo);
     const fetchRoutes = async () => {
       try {
+        const projectInfo = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
+          params: { projectNo: projectNo }
+        })
+
+        console.log("projectNo로 받아온 프로젝트 정보 :" + JSON.stringify(projectInfo.data))
+        setProject(projectInfo.data);
+
         const responses = await Promise.all([
           axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
           axios.get("http://localhost:9090/project/checkCode", { params: { projectNo } }),
@@ -61,9 +132,8 @@ const ProjectDetailBanners = ({ projectNo }) => {
         });
       } catch (error) {
         console.error("Error fetching project details:", error);
-      }
+      } 
     };
-
     fetchRoutes();
   }, [projectNo]);
 
@@ -71,24 +141,92 @@ const ProjectDetailBanners = ({ projectNo }) => {
     { title: "ERD", path: routes.erdNo ? `/erd/${routes.erdNo}` : "#" },
     { title: "Code Sync", path: routes.codeNo ? `/codeSync/${routes.codeNo}` : "#" },
     { title: "Docs", path: routes.docsNo ? `/docs/${routes.docsNo}` : "#" },
+    { title: "Gantt", path: routes.gantt ? `/gantt/${routes.gantt}` : "#"},
+    { title: "Skills", path: routes.skills ? `/gantt/${routes.skills}` : "#"},
+    { title: "portfolio", path: routes.portfolio ? `/gantt/${routes.portfolio}` : "#"},
   ];
+
+  function displayTime(unixTimeStamp) {
+    if (!unixTimeStamp) return '';
+    const myDate = new window.Date(unixTimeStamp);
+    if (isNaN(myDate)) return '';
+    const y = myDate.getFullYear();
+    const m = String(myDate.getMonth() + 1).padStart(2, '0');
+    const d = String(myDate.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const handleDeleteProject = async (projectNo) => {
+    // eslint-disable-next-line no-restricted-globals
+    if (confirm("프로젝트 진짜 지울거에요?")) {
+      try {
+        const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
+          params: { projectNo },
+        });
+        if (response.data.success) {
+          alert("프로젝트가 성공적으로 삭제되었습니다.");
+          fetchProjects(user.user.userNo);
+          closeModal();
+        } else {
+          alert("프로젝트 삭제에 실패했습니다.");
+        }
+      } catch (error) {
+        console.error("프로젝트 삭제 중 오류 발생:", error);
+        alert("프로젝트 삭제 중 오류가 발생했습니다.");
+      }
+    }
+  };
+  
 
   return (
     <>
-    <h2>Configure Project</h2>
-    <BannerWrapper>
-      {banners.map((banner, index) => (
-        <Banner
-          key={index}
-          onClick={() => {
-            if (banner.path !== "#") navigate(banner.path);
-            else alert("해당 데이터가 존재하지 않습니다.");
-          }}
-        >
-          {banner.title}
-        </Banner>
-      ))}
-    </BannerWrapper>
+    <ModalBackground onClick={closeModal}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        {project &&
+          <Content>
+            <ProjectInfoWrapper>
+              <h2>프로젝트 정보</h2>
+              <table>
+                <thead></thead>
+                <tbody>
+                  <tr>
+                    <StyledTd1>프로젝트 이름</StyledTd1>
+                    <StyledTd2> {project.projectName}</StyledTd2>
+                  </tr>
+                  <tr>
+                    <StyledTd1>프로젝트 공개 여부</StyledTd1>
+                    <StyledTd2> {project.projectDisclosure}</StyledTd2>
+                  </tr>
+                  <tr>
+                    <StyledTd1>프로젝트 설명</StyledTd1>
+                    <StyledTd2> {project.projectDesc}</StyledTd2>
+                  </tr>
+                  <tr>
+                    <StyledTd1>프로젝트 생성일</StyledTd1>
+                    <StyledTd2> {displayTime(project.projectCreateDate)}</StyledTd2>
+                  </tr>
+                  <tr>
+                    <ProjectDelTd colSpan="2"><ProjectDeleteButton onClick={ () => handleDeleteProject(project.projectNo)}>프로젝트 삭제</ProjectDeleteButton></ProjectDelTd>
+                  </tr>
+                </tbody>
+              </table>
+            </ProjectInfoWrapper>
+          <BannerWrapper>
+            {banners.map((banner, index) => (
+              <Banner
+                key={index}
+                onClick={() => {
+                  if (banner.path !== "#") navigate(banner.path);
+                  else alert("해당 데이터가 존재하지 않습니다.");
+                }}
+              >
+                {banner.title}
+              </Banner>
+            ))}
+          </BannerWrapper>
+          </Content>
+        }
+        </ModalContent>
+      </ModalBackground>
     </>
   );
 };

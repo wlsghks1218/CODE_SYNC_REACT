@@ -126,6 +126,11 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
   const [inputCode, setInputCode] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [selectedProjectNo, setSelectedProjectNo] = useState(null);
+  const [showModal, setShowModal] = useState(false); 
+
+  const closeModal = () => {
+    setSelectedProjectNo(null);
+  };
 
   const handleEditClick = (field) => {
     setEditing((prev) => ({ ...prev, [field]: true }));
@@ -364,6 +369,7 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
         <ProjectDetailBanners
           projectNo={selectedProjectNo}
           fetchProjects={fetchProjects}
+          closeModal={closeModal}
         />
       )}
     </Container>

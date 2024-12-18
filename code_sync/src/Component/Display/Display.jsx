@@ -82,7 +82,13 @@ const Display = () => {
           <Route path="/invalidProject" element={<InvalidProject />} />
           <Route path="/erd/:erdNo" element={<ErdDisplay />} />
           <Route path='/codeSync/:codeSyncNo' element={<CodeSyncMain data={user}/>}/>
-          <Route path="/docs/:wrapperNo" element={<Docs />} />
+          <Route 
+            path="/docs/:wrapperNo"
+            element={
+              <ProtectedRoute>
+                <Docs />
+              </ProtectedRoute>
+            } />
           <Route path="/user-auth" element={<UserAuthentication />} />
         </Routes>
       </Body>

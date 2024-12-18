@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
+import DocsHistoryModal from "./DocsHistoryModal";
 
 const Container = styled.div`
   display: flex;
@@ -101,7 +102,7 @@ const RemoveButton = styled.button`
 `;
 
 const InputField = styled.input`
-  width: 90%;
+  width: 70%;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -152,6 +153,36 @@ const DeleteButton = styled.span`
     border: 1px solid #dc3545;
   }
 `;
+const SpanWrapper = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  margin-bottom: 10px;
+`;
+
+const UploadTypeSpan = styled.span`
+  flex: 9; /* 90% */
+  text-align: center;
+`;
+
+const DocsHistoryButton = styled.button`
+  flex: 1; /* 10% */
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
+
+
+
 
 const Docs = () => {
   const { wrapperNo } = useParams();
@@ -166,59 +197,52 @@ const Docs = () => {
   ]);
   const [isEditable, setIsEditable] = useState([false, false, false]);
   const [isColumnSaved, setIsColumnSaved] = useState([false, false, false]);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [showModal, setShowModal] = useState(false); 
+  const [selectedColumnIndex, setSelectedColumnIndex] = useState(null);
 
+  const handleOpenModal = (index) => {
+    setSelectedColumnIndex(index);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const response = await axios.get(
-          `http://116.121.53.142:9100/docs/getProjectByWrapperNo?wrapperNo=${wrapperNo}`
+          `http://localhost:9090/docs/getProjectByWrapperNo?wrapperNo=${wrapperNo}`
         );
         setProject(response.data);
   
         const columnsResponse = await axios.get(
-          `http://116.121.53.142:9100/docs/getColumns?wrapperNo=${wrapperNo}`
+          `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
         );
-        const fetchedColumns = columnsResponse.data || []; // 기본값 설정
+        const fetchedColumns = columnsResponse.data || [];
   
-        console.log("컬럼 정보 : " + JSON.stringify(fetchedColumns, null, 2));
-  
-        const totalColumns = 3; // 기본적으로 3개의 컬럼 슬롯을 가정
+        const totalColumns = 3;
         const fetchedColumnData = fetchedColumns.map((col) => ({
           columnName: col.columnName || "",
           columnNo: col.columnNo || null,
+          columnIndex: col.columnIndex || 0,
+          voList: col.voList || [],
         }));
+
+        const sortedColumns = Array.from({ length: totalColumns }, (_, i) =>
+          fetchedColumnData.find((col) => col.columnIndex === i) || {
+            columnName: "",
+            columnNo: null,
+            columnIndex: i,
+            voList: [],
+          }
+        );
   
-        const updatedColumnData = [...fetchedColumnData];
-        for (let i = fetchedColumnData.length; i < totalColumns; i++) {
-          updatedColumnData.push({ columnName: "", columnNo: null });
-        }
-  
-        const updatedFiles = [...fetchedColumns.map((col) => col.voList || [])];
-        for (let i = fetchedColumns.length; i < totalColumns; i++) {
-          updatedFiles.push([]);
-        }
-  
-        const updatedEditable = [...fetchedColumns.map(() => false)];
-        for (let i = fetchedColumns.length; i < totalColumns; i++) {
-          updatedEditable.push(false);
-        }
-  
-        const updatedSaved = [...fetchedColumns.map(() => true)];
-        for (let i = fetchedColumns.length; i < totalColumns; i++) {
-          updatedSaved.push(false);
-        }
-  
-        const updatedColumnStates = [...fetchedColumns.map(() => true)];
-        for (let i = fetchedColumns.length; i < totalColumns; i++) {
-          updatedColumnStates.push(false); // 빈 슬롯은 "컬럼 추가하기" 버튼이 보이도록 설정
-        }
-  
-        setColumnData(updatedColumnData);
-        setFiles(updatedFiles);
-        setIsEditable(updatedEditable);
-        setIsColumnSaved(updatedSaved);
-        setColumns(updatedColumnStates);
+        setColumnData(sortedColumns);
+        setFiles(sortedColumns.map((col) => col.voList || []));
+        setIsEditable(sortedColumns.map(() => false));
+        setIsColumnSaved(sortedColumns.map((col) => col.columnNo !== null));
+        setColumns(sortedColumns.map((col) => col.columnNo !== null));
       } catch (error) {
         console.error("컬럼 데이터 가져오기 실패:", error);
       }
@@ -226,30 +250,38 @@ const Docs = () => {
   
     fetchProjects();
   }, [wrapperNo]);
+  
+  
 
   const handleAddColumn = (index) => {
     const updatedColumns = [...columns];
     updatedColumns[index] = true;
     setColumns(updatedColumns);
-
+  
     setColumnData((prev) => {
       const updatedData = [...prev];
-      if (!updatedData[index]) {
-        updatedData[index] = "";
-      }
+      updatedData[index] = { columnName: "", columnNo: null, columnIndex: index };
       return updatedData;
     });
-
+  
     setIsEditable((prev) => {
       const updatedEditable = [...prev];
       updatedEditable[index] = true;
       return updatedEditable;
     });
+  
+    setIsColumnSaved((prev) => {
+      const updatedSaved = [...prev];
+      updatedSaved[index] = false;
+      return updatedSaved;
+    });
   };
+  
 
   const handleRemoveFile = async (columnIndex, fileIndex) => {
     const file = files[columnIndex][fileIndex];
     const uploadPath = file.uploadPath;
+    const columnName = columnData[columnIndex]?.columnName;
   
     if (!uploadPath) {
       alert("파일 경로를 찾을 수 없습니다.");
@@ -257,12 +289,21 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://116.121.53.142:9100/docs/delete", {
+      const response = await axios.delete("http://localhost:9090/docs/delete", {
         params: { filePath: uploadPath },
       });
   
       if (response.status === 200) {
         alert("파일 삭제 성공");
+        
+        const historyRes = await axios.post("http://localhost:9090/docs/deleteHistory", {
+          projectNo: project.projectNo,
+          fileName: file.docsName,
+          userId: user.user.userId,
+          columnIndex: columnIndex,
+          columnName: columnName
+        });
+
         const updatedFiles = [...files];
         updatedFiles[columnIndex].splice(fileIndex, 1);
         setFiles(updatedFiles);
@@ -274,7 +315,6 @@ const Docs = () => {
       alert("파일 삭제 중 오류 발생");
     }
   };
-  
 
   const handleColumnInputChange = (index, value) => {
     const updatedColumnData = [...columnData];
@@ -290,27 +330,41 @@ const Docs = () => {
       return;
     }
   
-    setIsEditable((prev) => {
-      const updatedEditable = [...prev];
-      updatedEditable[index] = false;
-      return updatedEditable;
-    });
-  
     try {
-      const response = await axios.post(`http://116.121.53.142:9100/docs/saveColumn`, {
+      const response = await axios.post(`http://localhost:9090/docs/saveColumn`, {
         wrapperNo: wrapperNo,
         columnIndex: index,
         columnCreator: user.user.userNo,
         columnName,
       });
   
-      setIsColumnSaved((prev) => {
-        const updatedSaved = [...prev];
-        updatedSaved[index] = true;
-        return updatedSaved;
-      });
+      const newColumnNo = response.data;
   
-      alert(response.data.message || "컬럼 저장 성공");
+      if (newColumnNo) {
+        setColumnData((prev) =>
+          prev.map((col, idx) =>
+            idx === index
+              ? { ...col, columnNo: newColumnNo, columnName }
+              : col
+          )
+        );
+  
+        setIsColumnSaved((prev) => {
+          const updatedSaved = [...prev];
+          updatedSaved[index] = true;
+          return updatedSaved;
+        });
+  
+        setIsEditable((prev) => {
+          const updatedEditable = [...prev];
+          updatedEditable[index] = false;
+          return updatedEditable;
+        });
+  
+        alert("컬럼 저장 성공");
+      } else {
+        alert("컬럼 번호를 가져오지 못했습니다.");
+      }
     } catch (error) {
       console.error("컬럼 저장 실패:", error);
       alert("컬럼 저장 실패");
@@ -333,21 +387,25 @@ const Docs = () => {
   
     const file = event.target.files[0];
     const uploadUserNo = user.user.userNo;
-    const columnNo = columnData[columnIndex].columnNo;
+    const columnNo = columnData[columnIndex]?.columnNo;
+    const columnName = columnData[columnIndex]?.columnName;
   
-    if (!file) return;
+    if (!file || !columnNo) {
+      alert("파일 또는 컬럼 번호를 확인할 수 없습니다.");
+      return;
+    }
   
-    const allowedExtensions = ['txt', 'pptx', 'docx', 'docs', 'xml', 'xlsx'];
-    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const allowedExtensions = ["txt", "pptx", "docx", "docs", "xml", "xlsx", "pdf"];
+    const fileExtension = file.name.split(".").pop().toLowerCase();
   
     if (!allowedExtensions.includes(fileExtension)) {
-      alert(`허용되지 않는 파일 형식입니다. 다음 확장자만 업로드 가능합니다: ${allowedExtensions.join(', ')}`);
-      event.target.value = "";
+      alert(`허용되지 않는 파일 형식입니다. 업로드 가능한 확장자: ${allowedExtensions.join(", ")}`);
+      event.target.value = ""; // 파일 선택 초기화
       return;
     }
   
     try {
-      const fileExistsResponse = await axios.get("http://116.121.53.142:9100/docs/checkFileExists", {
+      const fileExistsResponse = await axios.get("http://localhost:9090/docs/checkFileExists", {
         params: {
           fileName: file.name,
           wrapperNo,
@@ -365,36 +423,50 @@ const Docs = () => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("uploadUserNo", uploadUserNo);
-      formData.append("columnNo", columnNo);
+      formData.append("columnNo", columnNo); // 제대로 매핑된 columnNo 전달
       formData.append("wrapperNo", wrapperNo);
   
-      const response = await axios.post("http://116.121.53.142:9100/docs/upload", formData, {
+      const response = await axios.post("http://localhost:9090/docs/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
   
-      alert("업로드 성공: " + response.data);
+      if (response.status === 200) {
+        alert("업로드 성공");
+        const historyRes = await axios.post("http://localhost:9090/docs/uploadHIstory", {
+          projectNo: project.projectNo,
+          fileName: file.name,
+          userId: user.user.userId,
+          columnIndex: columnIndex,
+          columnName: columnName
+        });
+      }
   
       const updatedColumnsResponse = await axios.get(
         `http://116.121.53.142:9100/docs/getColumns?wrapperNo=${wrapperNo}`
       );
-      const updatedColumns = updatedColumnsResponse.data;
-  
-      setColumnData(
-        updatedColumns.map((col) => ({
-          columnName: col.columnName || "",
-          columnNo: col.columnNo || null,
-        }))
+      const totalColumns = 3; // 기본적으로 3개의 컬럼
+      const sortedColumns = Array.from({ length: totalColumns }, (_, i) =>
+        updatedColumnsResponse.data.find((col) => col.columnIndex === i) || {
+          columnName: "",
+          columnNo: null,
+          columnIndex: i,
+          voList: [],
+        }
       );
-      setFiles(updatedColumns.map((col) => col.voList || []));
+      
+      setColumnData(sortedColumns.map((col) => ({
+        columnName: col.columnName || "",
+        columnNo: col.columnNo || null,
+      })));
+      setFiles(sortedColumns.map((col) => col.voList || []));
+      
     } catch (error) {
       console.error("파일 업로드 실패:", error);
       alert("파일 업로드 실패");
     }
   };
-  
-  
 
   const handleDownloadFile = async (fileName, columnIndex, fileIndex) => {
     try {
@@ -405,7 +477,7 @@ const Docs = () => {
         return;
      }
   
-      const response = await axios.get("http://116.121.53.142:9100/docs/download", {
+      const response = await axios.get("http://localhost:9090/docs/download", {
         params: { filePath: uploadPath }
       });
   
@@ -429,7 +501,7 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://116.121.53.142:9100/docs/deleteColumn", {
+      const response = await axios.delete("http://localhost:9090/docs/deleteColumn", {
         params: {
           columnIndex: columnIndex,
           wrapperNo: wrapperNo,
@@ -438,10 +510,12 @@ const Docs = () => {
   
       if (response.status === 200) {
         alert("컬럼이 삭제되었습니다.");
+        
   
+        // 컬럼 상태 초기화
         setColumnData((prev) =>
           prev.map((col, idx) =>
-            idx === columnIndex ? { columnName: "", columnNo: null } : col
+            idx === columnIndex ? { columnName: "", columnNo: null, columnIndex: idx } : col
           )
         );
   
@@ -470,64 +544,82 @@ const Docs = () => {
   };
   
   
+  
   return (
     <Container>
       <h1>프로젝트 명 : {project?.projectName || "Loading..."}</h1>
+      <SpanWrapper>
+        <UploadTypeSpan>txt, pptx, docx, docs, xml, xlsx, pdf 문서만 업로드 가능합니다.</UploadTypeSpan>
+      </SpanWrapper>
       <ColumnContainer>
-        {columns.map((isEditing, index) => (
-          <ColumnField key={index}>
-            {isEditing ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-                  <InputField
-                    type="text"
-                    placeholder={`컬럼 ${index + 1} 이름 입력`}
-                    value={columnData[index]?.columnName || ""}
-                    onChange={(e) => handleColumnInputChange(index, e.target.value)}
-                    disabled={!isEditable[index]}
-                  />
-                  {isEditable[index] ? (
-                    <SaveButton onClick={() => handleSaveColumn(index)}>저장</SaveButton>
-                  ) : (
-                    <SaveButton onClick={() => handleEditColumn(index)}>수정</SaveButton>
-                  )}
-                  <DeleteButton onClick={()=>handleDeleteColumn(index)}> X </DeleteButton>
-                </div>
-                {files[index].map((file, fileIndex) => (
-                  <FileActionContainer key={fileIndex}>
-                    <FileLabel>
-                      {file.docsName}
-                    </FileLabel>
-                    <DownloadButton onClick={() => handleDownloadFile(file.docsName, index, fileIndex)}>
-                      다운로드
-                    </DownloadButton>
-                    <RemoveButton onClick={() => handleRemoveFile(index, fileIndex)}>
-                      삭제
-                    </RemoveButton>
-                  </FileActionContainer>
-                ))}
-                {files[index].length < 3 && (
-                  <AddFileButton>
-                    <input
-                      type="file"
-                      style={{ display: "none" }}
-                      id={`file-upload-${index}`}
-                      onChange={(e) => handleFileChange(e, index)}
+        {columns.map((isEditing, index) => {
+          const currentColumn = columnData[index] || { columnName: "", columnNo: null };
+          const currentFiles = files[index] || [];
+          return (
+            <ColumnField key={index}>
+              {isEditing ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+                    <InputField
+                      type="text"
+                      placeholder={`컬럼 ${index + 1} 이름 입력`}
+                      value={currentColumn.columnName || ""}
+                      onChange={(e) => handleColumnInputChange(index, e.target.value)}
+                      disabled={!isEditable[index]}
                     />
-                    <label htmlFor={`file-upload-${index}`} style={{ cursor: "pointer" }}>
-                      [+ 파일 추가하기]
-                    </label>
-                  </AddFileButton>
-                )}
-              </>
-            ) : (
-              <AddButton onClick={() => handleAddColumn(index)}>
-                컬럼 {index + 1} 추가
-              </AddButton>
-            )}
-          </ColumnField>
-        ))}
+                    {isEditable[index] ? (
+                      <SaveButton onClick={() => handleSaveColumn(index)}>저장</SaveButton>
+                    ) : (
+                      <SaveButton onClick={() => handleEditColumn(index)}>수정</SaveButton>
+                    )}
+                    <DocsHistoryButton onClick={() => handleOpenModal(index)}>업로드 내역</DocsHistoryButton>
+                    <DeleteButton onClick={() => handleDeleteColumn(index)}> X </DeleteButton>
+                  </div>
+                  {currentFiles.map((file, fileIndex) => (
+                    <FileActionContainer key={fileIndex}>
+                      <FileLabel>{file.docsName}</FileLabel>
+                      <DownloadButton
+                        onClick={() => handleDownloadFile(file.docsName, index, fileIndex)}
+                      >
+                        다운로드
+                      </DownloadButton>
+                      <RemoveButton onClick={() => handleRemoveFile(index, fileIndex)}>
+                        삭제
+                      </RemoveButton>
+                    </FileActionContainer>
+                  ))}
+                  {currentFiles.length < 3 && (
+                    <AddFileButton>
+                      <input
+                        type="file"
+                        style={{ display: "none" }}
+                        id={`file-upload-${index}`}
+                        onChange={(e) => handleFileChange(e, index)}
+                      />
+                      <label htmlFor={`file-upload-${index}`} style={{ cursor: "pointer" }}>
+                        [+ 파일 추가하기]
+                      </label>
+                    </AddFileButton>
+                  )}
+                </>
+              ) : (
+                <AddButton onClick={() => handleAddColumn(index)}>
+                  컬럼 {index + 1} 추가
+                </AddButton>
+              )}
+            </ColumnField>
+          );
+        })}
       </ColumnContainer>
+      {
+        showModal &&
+        <DocsHistoryModal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          projectNo = {project.projectNo}
+          columnIndex={selectedColumnIndex}
+        />
+      }
     </Container>
   );
 };

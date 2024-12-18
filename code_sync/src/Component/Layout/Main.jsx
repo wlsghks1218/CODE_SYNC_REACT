@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import LoginModal from './LoginModal';
 
 const Container = styled.div`
   display: flex; 
@@ -263,6 +264,15 @@ const Main = ({ projects, fetchProjects }) => {
     }, [isAuthenticated, user]);
 
     const handleChange = (e) => {
+
+      if (name === "projectName" && value.replace(/[^\uAC00-\uD7A3]/g, "").length > 10) {
+          alert("프로젝트 이름은 한글 10자까지 입력할 수 있습니다.");
+          return;
+      }
+      if (name === "projectDesc" && value.replace(/[^\uAC00-\uD7A3]/g, "").length > 30) {
+          alert("프로젝트 설명은 한글 30자까지 입력할 수 있습니다.");
+          return;
+      }
         const { name, value } = e.target;
         setProjectInfo({
             ...projectInfo,
@@ -340,6 +350,17 @@ const Main = ({ projects, fetchProjects }) => {
     };
 
     const handleSubmit = async () => {
+      const projectNameLength = projectInfo.projectName.replace(/[^\uAC00-\uD7A3]/g, "").length;
+      const projectDescLength = projectInfo.projectDesc.replace(/[^\uAC00-\uD7A3]/g, "").length;
+  
+      if (projectNameLength > 10) {
+          alert("프로젝트 이름은 한글 10자까지 입력할 수 있습니다.");
+          return;
+      }
+      if (projectDescLength > 30) {
+          alert("프로젝트 설명은 한글 30자까지 입력할 수 있습니다.");
+          return;
+      }
         if (projectInfo.projectName === '') {
             alert("프로젝트 이름을 입력하세요.");
             return;
@@ -463,11 +484,23 @@ const Main = ({ projects, fetchProjects }) => {
           });
           alert("참여 유저가 제거되었습니다.");
       
-          // 참여 유저 다시 불러오기
           const responseUsers = await axios.get(`http://localhost:9090/project/getProjectUsers`, {
             params: { projectNo: selectedProject.projectNo },
           });
           setSelectedProject((prev) => ({ ...prev, users: responseUsers.data }));
+
+          const responseAllUsers = await axios.get(`http://localhost:9090/member/getAllUsers`);
+          setAllUsers(responseAllUsers.data);
+
+          const updatedFilteredUsers = responseAllUsers.data.filter(
+            (user) =>
+              searchTerm && 
+              user.userId.includes(searchTerm) &&
+              !responseUsers.data.some((u) => u.userNo === user.userNo) &&
+              !invitedUser.some((u) => u.userNo === user.userNo)
+          );
+          setFilteredUsers(updatedFilteredUsers);
+
         } catch (error) {
           console.error("참여 유저 제거 실패:", error);
         }
@@ -481,11 +514,22 @@ const Main = ({ projects, fetchProjects }) => {
           });
           alert("초대가 취소되었습니다.");
       
-          // 초대된 유저 다시 불러오기
           const responseInvited = await axios.get(`http://localhost:9090/project/getInvitedUsers`, {
             params: { projectNo: selectedProject.projectNo },
           });
           setInvitedUser(responseInvited.data);
+
+          const responseAllUsers = await axios.get(`http://localhost:9090/member/getAllUsers`);
+          setAllUsers(responseAllUsers.data);
+      
+          const updatedFilteredUsers = responseAllUsers.data.filter(
+            (user) =>
+              searchTerm &&
+              user.userId.includes(searchTerm) &&
+              !selectedProject?.users.some((u) => u.userNo === user.userNo) &&
+              !responseInvited.data.some((u) => u.userNo === user.userNo)
+          );
+          setFilteredUsers(updatedFilteredUsers);
         } catch (error) {
           console.error("초대 취소 실패:", error);
         }
@@ -678,18 +722,38 @@ const Main = ({ projects, fetchProjects }) => {
                   />
                   <StyledTable>
                     <thead>
+                      <tr>
+                        <th>유저 ID</th>
+                        <th>상태</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {filteredUsers.map((user) => (
                         <tr key={user.userNo}>
-                          <td>{user.userId}</td>
                           <td>
+                            <div>
+                              {user.userId}
+                              {user.projectCount >= 3 && (
+                                <ReasonSpan>프로젝트 개수 초과</ReasonSpan>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            {/* 초대 상태 및 스피너 */}
                             {invitingUserId === user.userNo ? (
                               <Spinner />
+                            ) : user.invited ? (
+                              <InviteButton disabled>초대 완료</InviteButton>
                             ) : (
                               <InviteButton
-                                onClick={() => handleInvite(user.userNo, user.userEmail, user.userId)}
-                                disabled={selectedProject?.users.length >= 6}
+                                onClick={() =>
+                                  handleInvite(user.userNo, user.userEmail, user.userId)
+                                }
+                                disabled={
+                                  user.projectCount >= 3 ||
+                                  selectedProject?.users.length >= 6 ||
+                                  invitingUserId !== null
+                                }
                               >
                                 초대
                               </InviteButton>
@@ -703,18 +767,11 @@ const Main = ({ projects, fetchProjects }) => {
                 </ModalContent>
               </ModalBackground>
              )}
-            {isLoginRequiredModalOpen && (
-                <ModalBackground onClick={handleCloseLoginRequiredModal}>
-                    <ModalContent onClick={(e) => e.stopPropagation()}>
-                        <h2>로그인이 필요합니다.</h2>
-                        <p>로그인 후 사용 가능한 기능입니다.</p>
-                        <div>
-                            <ModalButton onClick={handleNavigateToLogin}>로그인</ModalButton>
-                            <ModalButton onClick={handleCloseLoginRequiredModal}>돌아가기</ModalButton>
-                        </div>
-                    </ModalContent>
-                </ModalBackground>
-            )}
+            <LoginModal
+              isOpen={isLoginRequiredModalOpen}
+              onClose={handleCloseLoginRequiredModal}
+              onNavigateToLogin={handleNavigateToLogin}
+            />
         </>
     );
 };

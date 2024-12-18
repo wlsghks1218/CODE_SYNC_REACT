@@ -194,6 +194,16 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "projectName" && value.replace(/[^\uAC00-\uD7A3]/g, "").length > 10) {
+      alert("프로젝트 이름은 한글 10자까지 입력할 수 있습니다.");
+      return;
+    }
+    if (name === "projectDesc" && value.replace(/[^\uAC00-\uD7A3]/g, "").length > 30) {
+      alert("프로젝트 설명은 한글 30자까지 입력할 수 있습니다.");
+      return;
+    }
+
     setProjectInfo({
         ...projectInfo,
         [name]: value,
@@ -238,17 +248,14 @@ const handleCreateProject = async () => {
         return;
     }
 
-    // 프로젝트 목록 가져오기
     try {
         const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
 
-        // 프로젝트가 3개 이상이면 경고 메시지 출력
         if (response.data.length >= 3) {
             alert("프로젝트는 최대 3개까지 생성할 수 있습니다.");
             return;
         }
 
-        // 프로젝트 생성 모달 열기
         setProjectInfo({
             projectName: '',
             projectDisclosure: 'public',
@@ -274,6 +281,18 @@ const handleCloseModal = () => {
 };
 
 const handleSubmit = async () => {
+  const projectNameLength = projectInfo.projectName.replace(/[^\uAC00-\uD7A3]/g, "").length;
+  const projectDescLength = projectInfo.projectDesc.replace(/[^\uAC00-\uD7A3]/g, "").length;
+
+  if (projectNameLength > 10) {
+    alert("프로젝트 이름은 한글 10자까지 입력할 수 있습니다.");
+    return;
+  }
+  if (projectDescLength > 30) {
+    alert("프로젝트 설명은 한글 30자까지 입력할 수 있습니다.");
+    return;
+  }
+  
   if (projectInfo.projectName === '') {
       alert("프로젝트 이름을 입력하세요.");
       return;
