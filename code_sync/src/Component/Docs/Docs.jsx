@@ -444,7 +444,7 @@ const Docs = () => {
       }
   
       const updatedColumnsResponse = await axios.get(
-        `http://116.121.53.142:9100/docs/getColumns?wrapperNo=${wrapperNo}`
+        `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
       );
       const totalColumns = 3; // 기본적으로 3개의 컬럼
       const sortedColumns = Array.from({ length: totalColumns }, (_, i) =>

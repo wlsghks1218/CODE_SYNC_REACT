@@ -32,7 +32,6 @@ const CodeSyncMain = ({data}) => {
 
   return (
     <MainContainer>
-      <Header />
       <ContentWrapper>
         <SidebarLeft
           onFileContentChange={handleFileContentChange}
@@ -41,7 +40,6 @@ const CodeSyncMain = ({data}) => {
         <MainContent fileContent={fileContent} fileNo={fileNo} data={data} />
         <SidebarRight />
       </ContentWrapper>
-      <Footer />
     </MainContainer>
   );
 };

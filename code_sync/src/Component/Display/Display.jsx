@@ -14,9 +14,9 @@ import Docs from '../Docs/Docs';
 import CodeSyncMain from '../CodeSync/CodeSyncMain';
 import ErdDisplay from './ErdDisplay';
 import axios from 'axios';
-import UserAuthentication from '../MyPage/UserAuthentication';
 import ProjectLimit from '../Error/ProjectLimit';
 import InvalidProject from '../Error/InvalidProject';
+import Gantt from '../Gantt/Gantt';
 
 
 const DisplayWrapper = styled.div`
@@ -33,8 +33,16 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
+    const savedState = localStorage.getItem("userState");
+    const parsedState = savedState ? JSON.parse(savedState) : null;
+
+    // 예외 처리: '/'는 인증 확인을 생략
+    if (window.location.pathname === "/") {
+      return;
+    }
+
+    if (!isAuthenticated && (!parsedState || !parsedState.isAuthenticated)) {
+      navigate("/login");
     }
   }, [isAuthenticated, navigate]);
 
@@ -64,33 +72,29 @@ const Display = () => {
     <DisplayWrapper>
       <Header projects={projects} fetchProjects={fetchProjects} setProjects={setProjects} />
       <Body>
-        <Routes>
-          <Route path="/" element={<Main projects={projects} fetchProjects={fetchProjects}/>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/join" element={<Join />} />
-          <Route
-            path="/myPage"
-            element={
-              <ProtectedRoute>
-                <MyPage projects={projects} fetchProjects={fetchProjects} setProjects={setProjects}/>
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/expiredPage" element={<ExpiredPage />} />
-          <Route path="/alreadyJoined" element={<AlreadyJoined />} />
-          <Route path="/projectLimit" element={<ProjectLimit />} />
-          <Route path="/invalidProject" element={<InvalidProject />} />
-          <Route path="/erd/:erdNo" element={<ErdDisplay />} />
-          <Route path='/codeSync/:codeSyncNo' element={<CodeSyncMain data={user}/>}/>
-          <Route 
-            path="/docs/:wrapperNo"
-            element={
-              <ProtectedRoute>
-                <Docs />
-              </ProtectedRoute>
-            } />
-          <Route path="/user-auth" element={<UserAuthentication />} />
-        </Routes>
+      <Routes>
+        <Route path="/" element={<Main projects={projects} fetchProjects={fetchProjects} />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/join" element={<Join />} />
+        <Route
+          path="*"
+          element={
+            <ProtectedRoute>
+              <Routes>
+                <Route path="/myPage" element={<MyPage projects={projects} fetchProjects={fetchProjects} setProjects={setProjects}/>} />
+                <Route path="/expiredPage" element={<ExpiredPage />} />
+                <Route path="/alreadyJoined" element={<AlreadyJoined />} />
+                <Route path="/projectLimit" element={<ProjectLimit />} />
+                <Route path="/invalidProject" element={<InvalidProject />} />
+                <Route path="/erd/:erdNo" element={<ErdDisplay />} />
+                <Route path="/codeSync/:codeSyncNo" element={<CodeSyncMain data={user}/>} />
+                <Route path="/gantt/:projectNo" element={<Gantt />} />
+                <Route path="/docs/:wrapperNo" element={<Docs />} />
+              </Routes>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
       </Body>
       <Footer />
     </DisplayWrapper>

@@ -210,28 +210,26 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
     });
   };
   useEffect(() => {
-    console.log("프로젝트 상태 변경 감지:", projects);
   }, [projects]);
   
-  console.log("유저: " + JSON.stringify(user, null, 2));
-  
   const handleLogout = async () => {
-    console.log("로그아웃 시도 유저 : " + user.user?.userId);
     if (user) {
       try {
+        // 로그아웃 요청
         await axios.post(
           "http://localhost:9090/member/logout",
           { userId: user.user?.userId },
           {
-            withCredentials: true, // 쿠키를 포함하도록 설정
+            withCredentials: true, // 쿠키 포함
             headers: { "Content-Type": "application/json" },
           }
         );
-        
+  
         dispatch(logout());
+        
         setProjects([]);
-        console.log("로그아웃 후 프로젝트 : " + projects);
-        console.log("Logout successful");
+        localStorage.removeItem("userState");
+  
   
         navigate("/");
       } catch (error) {
@@ -241,6 +239,7 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
       console.warn("No user found for logout");
     }
   };
+  
 
 const handleCreateProject = async () => {
     if (!isAuthenticated) {
@@ -303,8 +302,6 @@ const handleSubmit = async () => {
               'Content-Type': 'application/json',
           },
       });
-      console.log('프로젝트 생성 성공');
-
       fetchProjects(user?.user?.userNo);
 
       handleCloseModal();
@@ -319,7 +316,7 @@ const handleSubmit = async () => {
           {
             user.user === null
             ? <StyledButton><Link to='/login'>LOGIN</Link></StyledButton>
-            : <StyledButton><Link onClick={handleLogout}>LOGOUT</Link></StyledButton>
+            : <StyledButton onClick={handleLogout}>LOGOUT</StyledButton>
           }
           {(!isAuthenticated) ?
             <StyledButton><Link to='/join'>SIGN IN</Link></StyledButton> :

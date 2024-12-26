@@ -9,13 +9,15 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { loadStateFromLocalStorage, saveStateToLocalStorage } from './localStorage';
 
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-const persistedState = loadStateFromLocalStorage();
 
 const store = createStore(
   rootReducer,
-  persistedState
+  loadStateFromLocalStorage()
 );
+
+loadStateFromLocalStorage(store.dispatch);
 
 store.subscribe(() => {
   console.log("Redux 상태 변경 감지:", store.getState()); // 상태 변경 로그 추가

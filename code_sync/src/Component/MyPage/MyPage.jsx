@@ -124,9 +124,7 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [serverCode, setServerCode] = useState('');
   const [inputCode, setInputCode] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
   const [selectedProjectNo, setSelectedProjectNo] = useState(null);
-  const [showModal, setShowModal] = useState(false); 
 
   const closeModal = () => {
     setSelectedProjectNo(null);
@@ -160,13 +158,13 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
         }
 
         requestData = { userNo: user.user.userNo, userId: formData.userId };
-        const response1 = await axios.post("/member/updateUserId", requestData);
+        const response1 = await axios.post("http://localhost:9090/member/updateUserId", requestData);
 
         if (response1.status === 200) {
             alert(`${field} 변경이 완료되었습니다.`);
   
             // 서버에서 최신 유저 정보 다시 가져오기
-            const updatedUserResponse = await axios.get(`/member/getUserInfo?userNo=${user.user.userNo}`);
+            const updatedUserResponse = await axios.get(`http://localhost:9090/member/getUserInfo?userNo=${user.user.userNo}`);
             if (updatedUserResponse.status === 200) {
               // Redux 상태 업데이트
               console.log("반횐된 계정 정보 : " + JSON.stringify(updatedUserResponse.data, null, 2));
@@ -180,10 +178,10 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
               newPassword: formData.newPassword,
               userNo: user.user.userNo
             };
-            const chkPasswordResponse = await axios.post("/member/chkPassword", requestData);
+            const chkPasswordResponse = await axios.post("http://localhost:9090/member/chkPassword", requestData);
             if(chkPasswordResponse.data > 0){
                 alert("일단 비밀번호는 일치해요")
-                const response2 = await axios.post("/member/updatePassword", requestData);
+                const response2 = await axios.post("http://localhost:9090/member/updatePassword", requestData);
                 if(response2.data > 0){
                     alert("비밀번호 변경 완료");
                 }
@@ -207,7 +205,7 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
         return;
       }
     try {
-      const response = await axios.post("/member/sendVerification", {
+      const response = await axios.post("http://localhost:9090/member/sendVerification", {
         userEmail: formData.email,
     });
     setIsSendingVerification(true);
@@ -229,7 +227,7 @@ const MyPage = ({projects, fetchProjects, setProjects}) => {
     console.log("입력 코드 : " + inputCode + " 서버 코드 : " + serverCode);
     if (inputCode === serverCode) {
       alert("인증이 완료되었습니다.");
-        const response = await axios.post("/member/updateEmail", {
+        const response = await axios.post("http://localhost:9090/member/updateEmail", {
             userNo: user.user.userNo,
             email: formData.email,
           });

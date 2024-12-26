@@ -100,11 +100,9 @@ const Login = () => {
           maxRedirects: 0, // 리다이렉트를 방지
         }
       );
-      console.log("Response 객체 : " + JSON.stringify(response.data, null, 2));
       
       if (response.status === 200) {
         const user = response.data.principal;
-        console.log("로그인된 유저의 정보 " + JSON.stringify(user.user, null, 2));
         dispatch(login(user.user));
         navigate("/");
       } else {

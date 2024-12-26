@@ -124,11 +124,11 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
           axios.get("http://localhost:9090/project/checkCode", { params: { projectNo } }),
           axios.get("http://localhost:9090/project/checkDocs", { params: { projectNo } }),
         ]);
-
         setRoutes({
           erdNo: responses[0].data.erdNo,
           codeNo: responses[1].data.codeSyncNo,
           docsNo: responses[2].data.wrapperNo,
+          gantt: projectNo
         });
       } catch (error) {
         console.error("Error fetching project details:", error);
