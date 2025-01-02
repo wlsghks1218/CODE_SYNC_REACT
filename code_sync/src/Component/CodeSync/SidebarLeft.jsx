@@ -135,7 +135,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
     try {
       console.log(codeSyncNo);
   
-      const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {
@@ -304,7 +304,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
 
       const folderStructure = { folders, files };
 
-      const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -387,7 +387,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
     const { path } = file;
     
     try {
-      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
         folderNo: file.folderNo,
         fileName: file.name,
       });

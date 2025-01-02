@@ -17,6 +17,10 @@ import axios from 'axios';
 import ProjectLimit from '../Error/ProjectLimit';
 import InvalidProject from '../Error/InvalidProject';
 import Gantt from '../Gantt/Gantt';
+import Skills from '../Skills/Skills';
+import Admin from '../Admin/Admin';
+import ProjectDetail from '../Admin/ProjectDetail';
+import UserDetail from '../Admin/UserDetail';
 
 
 const DisplayWrapper = styled.div`
@@ -55,7 +59,7 @@ const Display = () => {
 
   const fetchProjects = async (userNo) => {
     try {
-      const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/project/getProjectList?userNo=${userNo}`);
       setProjects(response.data);
     } catch (error) {
       console.error('프로젝트 목록 조회 실패:', error);
@@ -90,6 +94,10 @@ const Display = () => {
                 <Route path="/codeSync/:codeSyncNo" element={<CodeSyncMain data={user}/>} />
                 <Route path="/gantt/:projectNo" element={<Gantt />} />
                 <Route path="/docs/:wrapperNo" element={<Docs />} />
+                <Route path="/skills/:projectNo" element={<Skills projects={projects} user={user} />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/project/:id" element={<ProjectDetail />} />
+                <Route path="/admin/user/:id" element={<UserDetail />} />
               </Routes>
             </ProtectedRoute>
           }

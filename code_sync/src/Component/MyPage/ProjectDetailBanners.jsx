@@ -83,8 +83,7 @@ const ProjectDelTd = styled.td`
   text-align: center; /* 텍스트를 가운데 정렬 */
   padding: 10px 0;
 `;
-
-const ProjectDeleteButton = styled.button`
+const ProjectUpdateButton = styled.button`
   padding: 10px 20px;
   background-color: #dc3545;
   color: white;
@@ -98,10 +97,36 @@ const ProjectDeleteButton = styled.button`
     background-color: #c82333;
   }
 `;
+
+const ProjectDeleteButton = styled.button`
+  padding: 10px 20px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  margin-left: 10px;
+
+  &:hover {
+    background-color: #c82333;
+  }
+`;
+
+const Input = styled.input`
+  padding: 5px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+`;
 const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user);
   const [project, setProject] = useState(null);
+  const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
+  const [editedProject, setEditedProject] = useState({});
   const [routes, setRoutes] = useState({
     erdNo: null,
     codeNo: null,
@@ -118,6 +143,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
 
         console.log("projectNo로 받아온 프로젝트 정보 :" + JSON.stringify(projectInfo.data))
         setProject(projectInfo.data);
+        setEditedProject(projectInfo.data);
 
         const responses = await Promise.all([
           axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
@@ -128,7 +154,8 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
           erdNo: responses[0].data.erdNo,
           codeNo: responses[1].data.codeSyncNo,
           docsNo: responses[2].data.wrapperNo,
-          gantt: projectNo
+          gantt: projectNo,
+          skills: projectNo
         });
       } catch (error) {
         console.error("Error fetching project details:", error);
@@ -142,7 +169,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     { title: "Code Sync", path: routes.codeNo ? `/codeSync/${routes.codeNo}` : "#" },
     { title: "Docs", path: routes.docsNo ? `/docs/${routes.docsNo}` : "#" },
     { title: "Gantt", path: routes.gantt ? `/gantt/${routes.gantt}` : "#"},
-    { title: "Skills", path: routes.skills ? `/gantt/${routes.skills}` : "#"},
+    { title: "Skills", path: routes.skills ? `/skills/${routes.skills}` : "#"},
     { title: "portfolio", path: routes.portfolio ? `/gantt/${routes.portfolio}` : "#"},
   ];
 
@@ -155,6 +182,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     const d = String(myDate.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
+  
   const handleDeleteProject = async (projectNo) => {
     // eslint-disable-next-line no-restricted-globals
     if (confirm("프로젝트 진짜 지울거에요?")) {
@@ -175,6 +203,33 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
       }
     }
   };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedProject((prev) => ({
+      ...prev,
+      [name]: value, // 필드명과 값을 업데이트
+    }));
+  };
+
+  const handleUpdateProject = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:9090/project/updateProject",
+        { ...editedProject }
+      );
+      if (response.data > 0) {
+        alert("프로젝트가 성공적으로 수정되었습니다.");
+        setIsEditing(false);
+        setProject(editedProject); // 수정된 값 반영
+      } else {
+        alert("프로젝트 수정에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("프로젝트 수정 중 오류 발생:", error);
+      alert("프로젝트 수정 중 오류가 발생했습니다.");
+    }
+  };
   
 
   return (
@@ -190,22 +245,80 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
                 <tbody>
                   <tr>
                     <StyledTd1>프로젝트 이름</StyledTd1>
-                    <StyledTd2> {project.projectName}</StyledTd2>
+                    <StyledTd2>
+                      {isEditing ? (
+                        <Input
+                          name="projectName"
+                          value={editedProject.projectName || ""}
+                          onChange={handleInputChange}
+                        />
+                      ) : (
+                        project.projectName
+                      )}
+                    </StyledTd2>
                   </tr>
                   <tr>
                     <StyledTd1>프로젝트 공개 여부</StyledTd1>
-                    <StyledTd2> {project.projectDisclosure}</StyledTd2>
+                    <StyledTd2>
+                      {isEditing ? (
+                        <>
+                          <label>
+                            <input
+                              type="radio"
+                              name="projectDisclosure"
+                              value="public"
+                              checked={editedProject.projectDisclosure === "public"}
+                              onChange={handleInputChange}
+                            />
+                            Public
+                          </label>
+                          <label>
+                            <input
+                              type="radio"
+                              name="projectDisclosure"
+                              value="private"
+                              checked={editedProject.projectDisclosure === "private"}
+                              onChange={handleInputChange}
+                            />
+                            Private
+                          </label>
+                        </>
+                      ) : (
+                        project.projectDisclosure === "public" ? "Public" : "Private"
+                      )}
+                    </StyledTd2>
                   </tr>
                   <tr>
                     <StyledTd1>프로젝트 설명</StyledTd1>
-                    <StyledTd2> {project.projectDesc}</StyledTd2>
+                    <StyledTd2>
+                      {isEditing ? (
+                        <Input
+                          name="projectDesc"
+                          value={editedProject.projectDesc || ""}
+                          onChange={handleInputChange}
+                        />
+                      ) : (
+                        project.projectDesc
+                      )}
+                    </StyledTd2>
                   </tr>
                   <tr>
                     <StyledTd1>프로젝트 생성일</StyledTd1>
                     <StyledTd2> {displayTime(project.projectCreateDate)}</StyledTd2>
                   </tr>
                   <tr>
-                    <ProjectDelTd colSpan="2"><ProjectDeleteButton onClick={ () => handleDeleteProject(project.projectNo)}>프로젝트 삭제</ProjectDeleteButton></ProjectDelTd>
+                    <ProjectDelTd colSpan="2">
+                    {isEditing ? (
+                        <ProjectUpdateButton onClick={handleUpdateProject}>
+                          수정 완료
+                        </ProjectUpdateButton>
+                      ) : (
+                        <ProjectUpdateButton onClick={() => setIsEditing(true)}>
+                          프로젝트 수정
+                        </ProjectUpdateButton>
+                      )}
+                      <ProjectDeleteButton onClick={ () => handleDeleteProject(project.projectNo)}>프로젝트 삭제</ProjectDeleteButton>
+                    </ProjectDelTd>
                   </tr>
                 </tbody>
               </table>

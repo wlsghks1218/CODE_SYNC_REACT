@@ -119,7 +119,7 @@ function ProjectHistory() {
   useEffect(() => {
     const fetchHistories = async () => {
         try {
-          const docsResponse = await axios.get("http://localhost:9090/docs/getDocsHistoryForGantt", {
+          const docsResponse = await axios.get("http://116.121.53.142:9100/docs/getDocsHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -132,6 +132,7 @@ function ProjectHistory() {
           // const codeResponse = await axios.get("/code/getCodeHistoryForGantt", {
           //   params: { projectNo },
           // });
+          
           // const erdResponse = await axios.get("/erd/getErdHistoryForGantt", {
           //   params: { projectNo },
           // });

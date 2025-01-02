@@ -245,7 +245,7 @@ const Main = ({ projects, fetchProjects }) => {
     
             const fetchAllUsers = async () => {
                 try {
-                    const response = await axios.get('http://localhost:9090/member/getAllUsers');
+                    const response = await axios.get('http://116.121.53.142:9100/member/getAllUsers');
                     const filtered = response.data.filter(user =>
                         !selectedProject?.users?.some(u => u.userId === user.userId)
                     );
@@ -307,11 +307,11 @@ const Main = ({ projects, fetchProjects }) => {
     
     const handleOpenProjectUsersModal = async (project) => {
       try {
-        const responseUsers = await axios.get(`http://localhost:9090/project/getProjectUsers`, {
+        const responseUsers = await axios.get(`http://116.121.53.142:9100/project/getProjectUsers`, {
           params: { projectNo: project.projectNo },
         });
   
-        const responseInvited = await axios.get(`http://localhost:9090/project/getInvitedUsers`, {
+        const responseInvited = await axios.get(`http://116.121.53.142:9100/project/getInvitedUsers`, {
           params: { projectNo: project.projectNo },
         });
   
@@ -363,7 +363,7 @@ const Main = ({ projects, fetchProjects }) => {
             return;
         }
         try {
-            await axios.post('http://localhost:9090/project/createProject', projectInfo, {
+            await axios.post('http://116.121.53.142:9100/project/createProject', projectInfo, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -388,7 +388,7 @@ const Main = ({ projects, fetchProjects }) => {
 
         setInvitingUserId(userNo);
         try {
-          await axios.post('http://localhost:9090/project/inviteUser', {
+          await axios.post('http://116.121.53.142:9100/project/inviteUser', {
             projectNo: selectedProject.projectNo,
             projectName: selectedProject.projectName,
             userNo: userNo,
@@ -397,7 +397,7 @@ const Main = ({ projects, fetchProjects }) => {
     
           alert("초대가 완료되었습니다.");
     
-          const responseInvited = await axios.get(`http://localhost:9090/project/getInvitedUsers`, {
+          const responseInvited = await axios.get(`http://116.121.53.142:9100/project/getInvitedUsers`, {
             params: { projectNo: selectedProject.projectNo },
           });
           setInvitedUser(responseInvited.data);
@@ -426,7 +426,7 @@ const Main = ({ projects, fetchProjects }) => {
       }
 
       const handleMoveToErd = async (projectNo) => {
-        const response = await axios.get(`http://localhost:9090/project/checkErd`, {
+        const response = await axios.get(`http://116.121.53.142:9100/project/checkErd`, {
             params: { projectNo },
         });
       
@@ -435,7 +435,7 @@ const Main = ({ projects, fetchProjects }) => {
       };
 
       const handleMoveToCode = async (projectNo) => {
-          const response = await axios.get(`http://localhost:9090/project/checkCode`, {
+          const response = await axios.get(`http://116.121.53.142:9100/project/checkCode`, {
             params: { projectNo },
           });
           const codeNo = response.data.codeSyncNo;
@@ -443,7 +443,7 @@ const Main = ({ projects, fetchProjects }) => {
       };
 
       const handleMoveToDocs = async (projectNo) => {
-          const response = await axios.get(`http://localhost:9090/project/checkDocs`, {
+          const response = await axios.get(`http://116.121.53.142:9100/project/checkDocs`, {
             params: { projectNo },
           });
           const wrapperNo = response.data.wrapperNo;
@@ -454,11 +454,15 @@ const Main = ({ projects, fetchProjects }) => {
         navigate(`/gantt/${projectNo}`);
       }
 
+      const handleMoveToSkills = async (projectNo) => {
+        navigate(`/skills/${projectNo}`);
+      }
+
     const deleteProject = async (projectNo) => {
         // eslint-disable-next-line no-restricted-globals
         if (confirm("프로젝트 진짜 지울거에요?")) {
           try {
-            const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
+            const response = await axios.get(`http://116.121.53.142:9100/project/deleteProject`, {
               params: { projectNo },
             });
             if (response.data.success) {
@@ -478,18 +482,18 @@ const Main = ({ projects, fetchProjects }) => {
 
       const removeUserFromProject = async (userNo) => {
         try {
-          await axios.post('http://localhost:9090/project/removeUser', {
+          await axios.post('http://116.121.53.142:9100/project/removeUser', {
             projectNo: selectedProject.projectNo,
             userNo: userNo,
           });
           alert("참여 유저가 제거되었습니다.");
       
-          const responseUsers = await axios.get(`http://localhost:9090/project/getProjectUsers`, {
+          const responseUsers = await axios.get(`http://116.121.53.142:9100/project/getProjectUsers`, {
             params: { projectNo: selectedProject.projectNo },
           });
           setSelectedProject((prev) => ({ ...prev, users: responseUsers.data }));
 
-          const responseAllUsers = await axios.get(`http://localhost:9090/member/getAllUsers`);
+          const responseAllUsers = await axios.get(`http://116.121.53.142:9100/member/getAllUsers`);
           setAllUsers(responseAllUsers.data);
 
           const updatedFilteredUsers = responseAllUsers.data.filter(
@@ -508,18 +512,18 @@ const Main = ({ projects, fetchProjects }) => {
       
       const cancelInvitation = async (userNo) => {
         try {
-          await axios.post('http://localhost:9090/project/cancelInvitation', {
+          await axios.post('http://116.121.53.142:9100/project/cancelInvitation', {
             projectNo: selectedProject.projectNo,
             userNo: userNo,
           });
           alert("초대가 취소되었습니다.");
       
-          const responseInvited = await axios.get(`http://localhost:9090/project/getInvitedUsers`, {
+          const responseInvited = await axios.get(`http://116.121.53.142:9100/project/getInvitedUsers`, {
             params: { projectNo: selectedProject.projectNo },
           });
           setInvitedUser(responseInvited.data);
 
-          const responseAllUsers = await axios.get(`http://localhost:9090/member/getAllUsers`);
+          const responseAllUsers = await axios.get(`http://116.121.53.142:9100/member/getAllUsers`);
           setAllUsers(responseAllUsers.data);
       
           const updatedFilteredUsers = responseAllUsers.data.filter(
@@ -554,6 +558,9 @@ const Main = ({ projects, fetchProjects }) => {
             </TooltipItem>
             <TooltipItem onClick={() => handleMoveToGantt(project.projectNo)}>
                 Gantt Chart
+            </TooltipItem>
+            <TooltipItem onClick={() => handleMoveToSkills(project.projectNo)}>
+                기술 스택
             </TooltipItem>
             <span onClick={(e) => {
                 e.stopPropagation();
@@ -654,7 +661,7 @@ const Main = ({ projects, fetchProjects }) => {
                           cursor: 'pointer',
                         }}
                         onClick={() => {
-                          navigator.clipboard.writeText("http://localhost:9090/project/"+selectedProject.token);
+                          navigator.clipboard.writeText("http://116.121.53.142:9100/project/"+selectedProject.token);
                           alert('초대 코드가 클립보드에 복사되었습니다!');
                         }}
                       >

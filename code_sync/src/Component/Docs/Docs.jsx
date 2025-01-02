@@ -212,12 +212,16 @@ const Docs = () => {
     const fetchProjects = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:9090/docs/getProjectByWrapperNo?wrapperNo=${wrapperNo}`
+          `http://116.121.53.142:9100/docs/getProjectByWrapperNo`, {
+            params : { wrapperNo : wrapperNo }
+          }
         );
         setProject(response.data);
   
         const columnsResponse = await axios.get(
-          `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
+          `http://116.121.53.142:9100/docs/getColumns`, {
+            params : {wrapperNo : wrapperNo}
+          }
         );
         const fetchedColumns = columnsResponse.data || [];
   
@@ -289,14 +293,14 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://localhost:9090/docs/delete", {
+      const response = await axios.delete("http://116.121.53.142:9100/docs/delete", {
         params: { filePath: uploadPath },
       });
   
       if (response.status === 200) {
         alert("파일 삭제 성공");
         
-        const historyRes = await axios.post("http://localhost:9090/docs/deleteHistory", {
+        const historyRes = await axios.post("http://116.121.53.142:9100/docs/deleteHistory", {
           projectNo: project.projectNo,
           fileName: file.docsName,
           userId: user.user.userId,
@@ -331,7 +335,7 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.post(`http://localhost:9090/docs/saveColumn`, {
+      const response = await axios.post(`http://116.121.53.142:9100/docs/saveColumn`, {
         wrapperNo: wrapperNo,
         columnIndex: index,
         columnCreator: user.user.userNo,
@@ -405,7 +409,7 @@ const Docs = () => {
     }
   
     try {
-      const fileExistsResponse = await axios.get("http://localhost:9090/docs/checkFileExists", {
+      const fileExistsResponse = await axios.get("http://116.121.53.142:9100/docs/checkFileExists", {
         params: {
           fileName: file.name,
           wrapperNo,
@@ -426,15 +430,18 @@ const Docs = () => {
       formData.append("columnNo", columnNo); // 제대로 매핑된 columnNo 전달
       formData.append("wrapperNo", wrapperNo);
   
-      const response = await axios.post("http://localhost:9090/docs/upload", formData, {
+      const response = await axios.post("http://116.121.53.142:9100/docs/upload", formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+            "Content-Type": "multipart/form-data",
         },
-      });
+    });
+
+    alert(`응답 메시지: ${response.data}`);
+    console.log("서버 응답:", response.data);
   
       if (response.status === 200) {
         alert("업로드 성공");
-        const historyRes = await axios.post("http://localhost:9090/docs/uploadHIstory", {
+        const historyRes = await axios.post("http://116.121.53.142:9100/docs/uploadHIstory", {
           projectNo: project.projectNo,
           fileName: file.name,
           userId: user.user.userId,
@@ -444,9 +451,9 @@ const Docs = () => {
       }
   
       const updatedColumnsResponse = await axios.get(
-        `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
+        `http://116.121.53.142:9100/docs/getColumns?wrapperNo=${wrapperNo}`
       );
-      const totalColumns = 3; // 기본적으로 3개의 컬럼
+      const totalColumns = 3;
       const sortedColumns = Array.from({ length: totalColumns }, (_, i) =>
         updatedColumnsResponse.data.find((col) => col.columnIndex === i) || {
           columnName: "",
@@ -477,7 +484,7 @@ const Docs = () => {
         return;
      }
   
-      const response = await axios.get("http://localhost:9090/docs/download", {
+      const response = await axios.get("http://116.121.53.142:9100/docs/download", {
         params: { filePath: uploadPath }
       });
   
@@ -501,7 +508,7 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://localhost:9090/docs/deleteColumn", {
+      const response = await axios.delete("http://116.121.53.142:9100/docs/deleteColumn", {
         params: {
           columnIndex: columnIndex,
           wrapperNo: wrapperNo,

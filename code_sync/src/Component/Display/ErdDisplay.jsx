@@ -39,7 +39,7 @@ const ErdDisplay = () => {
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
@@ -50,7 +50,7 @@ const ErdDisplay = () => {
   // 테이블 정보 가져오기
   const fetchTables = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/tables?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/tables?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTables = response.data.map((item) => ({
           id: item.id || "null",
@@ -73,7 +73,7 @@ const ErdDisplay = () => {
 
   const fetchMemos = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/memos?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/memos?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedMemos = response.data.map((item) => ({
           id: item.id || "null",
@@ -95,7 +95,7 @@ const ErdDisplay = () => {
 
   const fetchArrows = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/arrows?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/arrows?erdNo=${erdNo}`);
       
       if (response.data && Array.isArray(response.data)) {
         const transformedArrows = response.data.map((item) => ({
