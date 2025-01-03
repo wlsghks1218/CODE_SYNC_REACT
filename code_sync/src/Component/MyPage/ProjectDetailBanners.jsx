@@ -121,17 +121,55 @@ const Input = styled.input`
   border-radius: 4px;
   font-size: 14px;
 `;
+
+const Button = styled.button`
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  color: white;
+  background-color: ${({ $color }) => $color || "#007bff"};
+
+  &:hover {
+    background-color: ${({ $hoverColor }) => $hoverColor || "#0056b3"};
+  }
+`;
+
 const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user);
   const [project, setProject] = useState(null);
   const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
   const [editedProject, setEditedProject] = useState({});
+  const [temporaryLink, setTemporaryLink] = useState("");
+  const [portfolioLink, setPortfolioLink] = useState("");
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [isEditingPortfolio, setIsEditingPortfolio] = useState(false);
   const [routes, setRoutes] = useState({
     erdNo: null,
     codeNo: null,
     docsNo: null,
   });
+
+  const handleSavePortfolioLink = async () => {
+    try {
+      await axios.post("http://localhost:9090/project/updatePortfolio", {
+        projectNo,
+        portfolioLink,
+      });
+      alert("포트폴리오 링크가 성공적으로 저장되었습니다.");
+      setShowPortfolioModal(false);
+    } catch (error) {
+      console.error("Error saving portfolio link:", error);
+      alert("포트폴리오 링크 저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleClosePortfolioModal = () => {
+    setShowPortfolioModal(false);
+  };
 
   useEffect(() => {
     console.log(projectNo);
@@ -144,6 +182,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
         console.log("projectNo로 받아온 프로젝트 정보 :" + JSON.stringify(projectInfo.data))
         setProject(projectInfo.data);
         setEditedProject(projectInfo.data);
+        setPortfolioLink(projectInfo.data.portfolioLink || "");
 
         const responses = await Promise.all([
           axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
@@ -170,7 +209,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     { title: "Docs", path: routes.docsNo ? `/docs/${routes.docsNo}` : "#" },
     { title: "Gantt", path: routes.gantt ? `/gantt/${routes.gantt}` : "#"},
     { title: "Skills", path: routes.skills ? `/skills/${routes.skills}` : "#"},
-    { title: "portfolio", path: routes.portfolio ? `/gantt/${routes.portfolio}` : "#"},
+    { title: "Portfolio", onClick: () => setShowPortfolioModal(true) },
   ];
 
   function displayTime(unixTimeStamp) {
@@ -230,7 +269,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
       alert("프로젝트 수정 중 오류가 발생했습니다.");
     }
   };
-  
+
 
   return (
     <>
@@ -324,22 +363,89 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
               </table>
             </ProjectInfoWrapper>
           <BannerWrapper>
-            {banners.map((banner, index) => (
-              <Banner
-                key={index}
-                onClick={() => {
-                  if (banner.path !== "#") navigate(banner.path);
-                  else alert("해당 데이터가 존재하지 않습니다.");
-                }}
-              >
-                {banner.title}
-              </Banner>
-            ))}
+          {banners.map((banner, index) => (
+                  <Banner
+                    key={index}
+                    onClick={() =>
+                      banner.path
+                        ? navigate(banner.path)
+                        : banner.onClick && banner.onClick()
+                    }
+                  >
+                    {banner.title}
+                  </Banner>
+                ))}
           </BannerWrapper>
           </Content>
         }
+        
         </ModalContent>
       </ModalBackground>
+      {showPortfolioModal && (
+        <ModalBackground onClick={handleClosePortfolioModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            {portfolioLink && portfolioLink.startsWith("http") && !isEditingPortfolio ? (
+              <>
+                <p>현재 포트폴리오 링크:</p>
+                <p>{portfolioLink}</p>
+                <Button
+                  $color="#28a745"
+                  $hoverColor="#218838"
+                  onClick={() => window.open(portfolioLink, "_blank")}
+                >
+                  이동
+                </Button>
+                <Button
+                  $color="#ffc107"
+                  $hoverColor="#e0a800"
+                  onClick={() => {
+                    setTemporaryLink(portfolioLink); // 기존 링크를 임시 상태로 설정
+                    setIsEditingPortfolio(true);
+                  }}
+                >
+                  수정
+                </Button>
+              </>
+            ) : (
+              <>
+                <p>포트폴리오 링크를 {portfolioLink ? "수정" : "입력"}하세요:</p>
+                <Input
+                  value={temporaryLink}
+                  onChange={(e) => setTemporaryLink(e.target.value)} // 임시 상태 업데이트
+                  placeholder="https://example.com"
+                />
+                <div>
+                  <Button
+                    $color="#007bff"
+                    $hoverColor="#0056b3"
+                    onClick={() => {
+                      if (!temporaryLink.trim() || !temporaryLink.startsWith("http")) {
+                        alert("유효한 URL을 입력하세요.");
+                        return;
+                      }
+                      setPortfolioLink(temporaryLink); // 입력값을 최종 상태로 저장
+                      handleSavePortfolioLink();
+                      setIsEditingPortfolio(false); // 수정 모드 종료
+                    }}
+                  >
+                    저장
+                  </Button>
+                  <Button
+                    $color="#6c757d"
+                    $hoverColor="#5a6268"
+                    onClick={() => {
+                      setTemporaryLink(portfolioLink); // 기존 상태 복원
+                      setIsEditingPortfolio(false); // 수정 모드 종료
+                    }}
+                  >
+                    취소
+                  </Button>
+                </div>
+              </>
+            )}
+          </ModalContent>
+        </ModalBackground>
+      )}
     </>
   );
 };

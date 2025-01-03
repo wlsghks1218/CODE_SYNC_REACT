@@ -1,5 +1,6 @@
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -20,6 +21,8 @@ const ChatMessage = styled.div`
   display: flex;
   justify-content: ${(props) => (props.isUser ? 'flex-end' : 'flex-start')};
   margin: 5px 0;
+  flex-direction: column; /* 상하 배치 */
+  align-items: ${(props) => (props.isUser ? 'flex-end' : 'flex-start')};
 `;
 
 const MessageBubble = styled.div`
@@ -76,14 +79,13 @@ const LiveChat = () => {
   const [inputValue, setInputValue] = useState('');  // 입력값 상태
   const [socket, setSocket] = useState(null);  // WebSocket 연결 상태
   const [userId, setUserId] = useState(null);
-
-  const queryParams = new URLSearchParams(location.search);
-  const userNo = queryParams.get('userNo');
+  const user = useSelector((state) => state.user);
+  const userNo = user.user.userNo;
 
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
@@ -94,7 +96,7 @@ const LiveChat = () => {
   // 서버에서 채팅 기록을 가져오는 함수
   async function getChatHistory() {
     try {
-      const response = await axios.get(`http://116.121.53.142:9100/erd/chatHistory?erdNo=${erdNo}`);
+      const response = await axios.get(`http://localhost:9090/erd/chatHistory?erdNo=${erdNo}`);
       const chatHistory = response.data;
   
       // 내 메세지 판별
@@ -187,8 +189,8 @@ const LiveChat = () => {
               {!msg.isUser && <UserId isUser={msg.isUser}>{msg.userId}:</UserId>}
               <span>{msg.content}</span>
             </MessageBubble>
-            {/* 메시지 하단에 타임스탬프 표시 */}
-            <span style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
+            {/* 메시지 하단에 타임스탬프 표시 - 상하로 배치 */}
+            <span style={{ fontSize: '10px', color: '#888', marginTop: '5px' }}>
               {new Date(msg.chatTime).toLocaleTimeString()}
             </span>
           </ChatMessage>

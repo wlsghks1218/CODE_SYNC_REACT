@@ -14,36 +14,27 @@ const MenuContainer = styled.div`
 const MenuItem = styled.div`
   padding: 8px 16px;
   cursor: pointer;
+  border-bottom: 1px solid #ccc; /* 각 아이템에 아래쪽 경계선 추가 */
 
   &:hover {
     background-color: #f1f1f1;
   }
-`;
-const ContextMenu = ({ x, y, items, onItemClick }) => {
-    return (
-      <ul style={{
-        position: 'absolute',
-        top: y + 'px',  // 마우스 위치 바로 위로
-        left: x + 'px', // 마우스 위치에 맞춰서
-        backgroundColor: 'white',
-        border: '1px solid #ccc',
-        padding: '10px',
-        listStyle: 'none',
-        margin: 0,
-        zIndex: 1000,
-        boxSizing: 'border-box', // border 포함한 크기 조정
-      }}>
-        {items.map((item, index) => (
-          <li key={index} onClick={() => onItemClick(item)}>
-            {item}
-          </li>
-        ))}
-      </ul>
-    );
-  };
-  
 
-  
-  
-  
+  &:last-child {
+    border-bottom: none; /* 마지막 아이템은 아래쪽 경계선 없애기 */
+  }
+`;
+
+const ContextMenu = ({ x, y, items, onItemClick }) => {
+  return (
+    <MenuContainer style={{ top: y + 'px', left: x + 'px' }}>
+      {items.map((item, index) => (
+        <MenuItem key={index} onClick={() => onItemClick(item)}>
+          {item}
+        </MenuItem>
+      ))}
+    </MenuContainer>
+  );
+};
+
 export default ContextMenu;

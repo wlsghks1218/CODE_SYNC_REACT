@@ -212,14 +212,14 @@ const Docs = () => {
     const fetchProjects = async () => {
       try {
         const response = await axios.get(
-          `http://116.121.53.142:9100/docs/getProjectByWrapperNo`, {
+          `http://localhost:9090/docs/getProjectByWrapperNo`, {
             params : { wrapperNo : wrapperNo }
           }
         );
         setProject(response.data);
   
         const columnsResponse = await axios.get(
-          `http://116.121.53.142:9100/docs/getColumns`, {
+          `http://localhost:9090/docs/getColumns`, {
             params : {wrapperNo : wrapperNo}
           }
         );
@@ -293,14 +293,14 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://116.121.53.142:9100/docs/delete", {
+      const response = await axios.delete("http://localhost:9090/docs/delete", {
         params: { filePath: uploadPath },
       });
   
       if (response.status === 200) {
         alert("파일 삭제 성공");
         
-        const historyRes = await axios.post("http://116.121.53.142:9100/docs/deleteHistory", {
+        const historyRes = await axios.post("http://localhost:9090/docs/deleteHistory", {
           projectNo: project.projectNo,
           fileName: file.docsName,
           userId: user.user.userId,
@@ -335,7 +335,7 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.post(`http://116.121.53.142:9100/docs/saveColumn`, {
+      const response = await axios.post(`http://localhost:9090/docs/saveColumn`, {
         wrapperNo: wrapperNo,
         columnIndex: index,
         columnCreator: user.user.userNo,
@@ -365,13 +365,9 @@ const Docs = () => {
           return updatedEditable;
         });
   
-        alert("컬럼 저장 성공");
-      } else {
-        alert("컬럼 번호를 가져오지 못했습니다.");
       }
     } catch (error) {
       console.error("컬럼 저장 실패:", error);
-      alert("컬럼 저장 실패");
     }
   };
 
@@ -409,7 +405,7 @@ const Docs = () => {
     }
   
     try {
-      const fileExistsResponse = await axios.get("http://116.121.53.142:9100/docs/checkFileExists", {
+      const fileExistsResponse = await axios.get("http://localhost:9090/docs/checkFileExists", {
         params: {
           fileName: file.name,
           wrapperNo,
@@ -430,7 +426,7 @@ const Docs = () => {
       formData.append("columnNo", columnNo); // 제대로 매핑된 columnNo 전달
       formData.append("wrapperNo", wrapperNo);
   
-      const response = await axios.post("http://116.121.53.142:9100/docs/upload", formData, {
+      const response = await axios.post("http://localhost:9090/docs/upload", formData, {
         headers: {
             "Content-Type": "multipart/form-data",
         },
@@ -441,7 +437,7 @@ const Docs = () => {
   
       if (response.status === 200) {
         alert("업로드 성공");
-        const historyRes = await axios.post("http://116.121.53.142:9100/docs/uploadHIstory", {
+        const historyRes = await axios.post("http://localhost:9090/docs/uploadHIstory", {
           projectNo: project.projectNo,
           fileName: file.name,
           userId: user.user.userId,
@@ -451,7 +447,7 @@ const Docs = () => {
       }
   
       const updatedColumnsResponse = await axios.get(
-        `http://116.121.53.142:9100/docs/getColumns?wrapperNo=${wrapperNo}`
+        `http://localhost:9090/docs/getColumns?wrapperNo=${wrapperNo}`
       );
       const totalColumns = 3;
       const sortedColumns = Array.from({ length: totalColumns }, (_, i) =>
@@ -484,7 +480,7 @@ const Docs = () => {
         return;
      }
   
-      const response = await axios.get("http://116.121.53.142:9100/docs/download", {
+      const response = await axios.get("http://localhost:9090/docs/download", {
         params: { filePath: uploadPath }
       });
   
@@ -508,7 +504,7 @@ const Docs = () => {
     }
   
     try {
-      const response = await axios.delete("http://116.121.53.142:9100/docs/deleteColumn", {
+      const response = await axios.delete("http://localhost:9090/docs/deleteColumn", {
         params: {
           columnIndex: columnIndex,
           wrapperNo: wrapperNo,
@@ -516,7 +512,6 @@ const Docs = () => {
       });
   
       if (response.status === 200) {
-        alert("컬럼이 삭제되었습니다.");
         
   
         // 컬럼 상태 초기화

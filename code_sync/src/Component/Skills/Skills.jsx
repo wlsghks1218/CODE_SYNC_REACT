@@ -20,6 +20,17 @@ const Wrapper = styled.div`
     width: 100%;
 `;
 
+const AlertMessage = styled.div`
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #ffcccc;
+    color: #d8000c;
+    border: 1px solid #d8000c;
+    border-radius: 4px;
+    font-size: 14px;
+`;
+
+
 const Skills = () => {
     const { projectNo } = useParams();
     const defaultSkills = [
@@ -35,7 +46,12 @@ const Skills = () => {
         'back-end': [],
         utils: [],
     });
-
+    const [alertMessage, setAlertMessage] = useState('');
+    const showAlert = (message) => {
+        setAlertMessage(message);
+        setTimeout(() => setAlertMessage(''), 3000); // 3초 후 메시지 제거
+    };
+    
     const fetchProjectInfo = async () => {
         try {
             const response = await axios.get(`http://localhost:9090/project/getProjectByProjectNo`, {
@@ -100,6 +116,10 @@ const Skills = () => {
     }, []);
 
     const addSkill = async (skillName, imageUrl) => {
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 추가할 수 있습니다.');
+            return;
+        }
         console.log(skillName, imageUrl);
         // 입력값이 없는 경우 처리
         if (!skillName || !imageUrl) {
@@ -135,7 +155,10 @@ const Skills = () => {
     
 
     const removeSkill = async (skillName) => {
-        if (!isMaster) return;
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 삭제할 수 있습니다.');
+            return;
+        }
     
         setSkills((prevSkills) =>
             Array.isArray(prevSkills) ? prevSkills.filter((skill) => skill.skillName !== skillName) : []
@@ -151,7 +174,10 @@ const Skills = () => {
     };
 
     const onDropSkill = async (skillName, targetCategory, sourceCategory, imageUrl) => {
-        if (!isMaster) return;
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 삭제할 수 있습니다.');
+            return;
+        }
     
         try {
             const category = targetCategory === 'sidebar' ? '' : targetCategory;
@@ -197,7 +223,10 @@ const Skills = () => {
     
     
     const onReturnSkill = async (skillName, sourceCategory) => {
-        if (!isMaster) return;
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 삭제할 수 있습니다.');
+            return;
+        }
     
         try {
             // sourceCategory에서 skill 정보 찾기

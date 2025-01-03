@@ -88,7 +88,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://116.121.53.142:9100/member/login",
+        "http://localhost:9090/member/login",
         {
           userId: userId,
           userPw: userPw,

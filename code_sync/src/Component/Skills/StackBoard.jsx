@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 
 const BoardContainer = styled.div`
@@ -56,16 +56,38 @@ const RemoveButton = styled.button`
     }
 `;
 
+const AlertMessage = styled.div`
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #ffcccc;
+    color: #d8000c;
+    border: 1px solid #d8000c;
+    border-radius: 4px;
+    font-size: 14px;
+`;
+
 const StackBoard = ({ isMaster, stackedSkills, onDropSkill, onReturnSkill }) => {
+    const [alertMessage, setAlertMessage] = useState('');
+    const showAlert = (message) => {
+        setAlertMessage(message);
+        setTimeout(() => setAlertMessage(''), 3000); // 3초 후 메시지 제거
+    };
+
     const handleDragStart = (e, skill, category) => {
-        if (!isMaster) return;
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 삭제할 수 있습니다.');
+            return;
+        }
         e.dataTransfer.setData('skillName', skill.skillName);
         e.dataTransfer.setData('imageUrl', skill.imageUrl);
         e.dataTransfer.setData('sourceCategory', category);
     };
 
     const handleDrop = (e, targetCategory) => {
-        if (!isMaster) return;
+        if (!isMaster) {
+            showAlert('프로젝트 마스터만 스킬을 삭제할 수 있습니다.');
+            return;
+        }
         e.preventDefault();
 
         const skillName = e.dataTransfer.getData('skillName');

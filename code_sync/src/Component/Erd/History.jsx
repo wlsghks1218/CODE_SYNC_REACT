@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 
 const HistoryContainer = styled.div`
   display: flex;
   flex-direction: column;
+  align-items: center;
   height: 100%;
+  width: 300px;
 `;
 
 const HistoryMessages = styled.div`
@@ -15,42 +17,34 @@ const HistoryMessages = styled.div`
 `;
 
 const HistoryMessage = styled.div`
-  padding: 10px;
+  position: relative;
+  padding: 10px 10px 25px 10px; 
   margin: 5px 0;
   background-color: #e1e1e1;
   border-radius: 5px;
+  word-break: break-word;
+  font-size : 13px;
 `;
 
-const History = () => {
-  const [history, setHistory] = useState([]);
+const TimeStamp = styled.div`
+  position: absolute;
+  bottom: 5px; /* 메세지 박스 내부 아래쪽에 위치 */
+  right: 10px;
+  font-size: 10px;
+  color: #888;
+`;
 
-  // 히스토리 추가 함수
-  const addHistory = (action) => {
-    const now = new Date();
-    const newHistory = {
-      action,
-      time: now.toLocaleString(), // 현재 날짜와 시간
-    };
-
-    console.log("History added:", newHistory); // 콘솔 로그로 확인
-
-    setHistory([newHistory, ...history]); // 새로운 기록을 앞에 추가
-  };
-
-  return (
-    <HistoryContainer>
-      {/* 테스트용 버튼 추가 */}
-      <button onClick={() => addHistory("Item Added: New item")}>Add History</button>
-
-      <HistoryMessages>
-        {history.map((entry, index) => (
-          <HistoryMessage key={index}>
-            {entry.time} - {entry.action}
-          </HistoryMessage>
-        ))}
-      </HistoryMessages>
-    </HistoryContainer>
-  );
-};
+const History = ({ history }) => (
+  <HistoryContainer>
+    <HistoryMessages>
+      {history.slice().reverse().map((entry, index) => (
+        <HistoryMessage key={index}>
+          {entry.action}
+          <TimeStamp>{entry.erdUpdateDate}</TimeStamp>
+        </HistoryMessage>
+      ))}
+    </HistoryMessages>
+  </HistoryContainer>
+);
 
 export default History;

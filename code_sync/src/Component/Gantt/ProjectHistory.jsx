@@ -7,12 +7,41 @@ import styled from "styled-components";
 
 const CalendarWrapper = styled.div`
     display: flex;
-    justify-content: center;
     align-items: center;
     height: 100vh;
     flex-direction: column;
     text-align: center;
     overflow: visible;
+`;
+const Legend = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  margin: 0 8px;
+`;
+
+const ColorBox = styled.div`
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 1px solid lightgray;
+
+  &.code {
+    background-color: red;
+  }
+
+  &.erd {
+    background-color: orange;
+  }
+
+  &.docs {
+    background-color: yellow;
+  }
 `;
 
 const StyledCalendar = styled(Calendar)`
@@ -104,6 +133,7 @@ const StyledCalendar = styled(Calendar)`
     }
 `;
 
+
 function ProjectHistory() {
   const [date, setDate] = useState(new Date());
   const [docsHistory, setDocsHistory] = useState([]);
@@ -119,7 +149,7 @@ function ProjectHistory() {
   useEffect(() => {
     const fetchHistories = async () => {
         try {
-          const docsResponse = await axios.get("http://116.121.53.142:9100/docs/getDocsHistoryForGantt", {
+          const docsResponse = await axios.get("http://localhost:9090/gantt/getDocsHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -133,7 +163,7 @@ function ProjectHistory() {
           //   params: { projectNo },
           // });
           
-          // const erdResponse = await axios.get("/erd/getErdHistoryForGantt", {
+          // const erdResponse = await axios.get("/gantt/getErdHistoryForGantt", {
           //   params: { projectNo },
           // });
       
@@ -220,13 +250,23 @@ function ProjectHistory() {
 
   return (
     <CalendarWrapper>
+      <Legend>
+        <LegendItem>
+          <ColorBox className="code" /> <span>CODE 수정 내역</span>
+        </LegendItem>
+        <LegendItem>
+          <ColorBox className="erd" /> <span>ERD 수정 내역</span>
+        </LegendItem>
+        <LegendItem>
+          <ColorBox className="docs" /> <span>DOCS 수정 내역</span>
+        </LegendItem>
+      </Legend>
       <StyledCalendar
         onChange={handleChange}
         value={date}
         locale="ko-KR"
         tileContent={tileContent}
       />
-      <p>선택된 날짜: {date.toLocaleDateString()}</p>
     </CalendarWrapper>
   );
 }

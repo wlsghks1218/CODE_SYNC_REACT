@@ -1,81 +1,228 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { Controlled as CodeMirror } from 'react-codemirror2'; // react-codemirror2 import
-import 'codemirror/lib/codemirror.css'; // Codemirror 스타일
-import 'codemirror/mode/javascript/javascript'; // JavaScript 구문 강조
+import styled, { createGlobalStyle } from 'styled-components';
+import { Controlled as CodeMirror } from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/javascript/javascript';
+import { useSelector } from 'react-redux';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
+
+const GlobalStyle = createGlobalStyle`
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html, body, #root {
+    height: 100%;
+    overflow: hidden; /* 전체 페이지 스크롤 방지 */
+  }
+`;
+
 const ContentWrapper = styled.div`
   flex: 1;
-  padding: 0;
-  margin-top: 0px;  // 헤더와의 간격을 좁힘 (값을 조정)
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  margin-top: -15px;
 `;
 
 const EditorWrapper = styled.div`
-  flex: 1;  // 상위 요소의 남은 공간을 차지하도록 설정
-  width: 100%;
+  flex: 1;
   display: flex;
+  width: 100%;
   justify-content: center;
   align-items: flex-start;
-  padding-right: 0px;
-  overflow: auto;  // 넘치면 스크롤이 생기도록 처리
-  height: 100%;  // 부모 요소의 100%를 차지하도록 설정
+  overflow: hidden;
 `;
 
 const CodeMirrorWrapper = styled.div`
   width: 100%;
   height: 100%;
+  overflow-y: auto;
   .CodeMirror {
-    height: 100%;  // CodeMirror가 부모 영역을 가득 채우도록 설정
+    height: 100%;
+    font-size: 14px;
+    overflow-x: hidden;
+    white-space: pre-wrap;
   }
 `;
 
-const MainContent = ({ fileContent, fileNo ,data }) => {
+const Overlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+`;
+
+const LockMessage = styled.div`
+  color: white;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+`;
+
+const LockIcon = styled.div`
+  font-size: 60px;
+  margin-bottom: 20px;
+`;
+
+const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange  }) => {
   const [code, setCode] = useState('');
-  const [showLineNumbers, setShowLineNumbers] = useState(false);  // 줄 번호 표시 여부 상태
-  const userNo = data.user.userNo;
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isLockedByUser, setIsLockedByUser] = useState(1);
+  const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const [messageStatus, setMessageStatus] = useState('');
+  const user = useSelector((state) => state.user);
+  const userNo = user.user.userNo;
+  const { codeSyncNo } = useParams();
 
-  console.log("파일번호는? " + fileNo);
+  useEffect(() => { 
+      axios.post('http://localhost:9090/api/codeSync/checkLocked', {
+        fileNo,
+        userNo,
+        codeSyncNo,
+      })
+      .then((response) => {
+        const { isLocked } = response.data;
+        setIsReadOnly(!isLocked);
+      })
+      .catch((error) => console.error('잠금 상태 확인 실패:', error));
+    
+  }, [fileContent,message]);
+
 
   useEffect(() => {
-    if (fileContent) {
+    console.log("fileContent:", fileContent);
+    if (fileContent && fileContent !== code) {
+      console.log("Updating code with fileContent");
       setCode(fileContent);
-      setShowLineNumbers(true);  // 파일이 있으면 줄 번호 표시
-    } else {
-      setShowLineNumbers(false);  // 파일이 없으면 줄 번호 숨기기
     }
-  }, [fileContent]);
+  }, [fileContent]); // fileContent 변경 시마다 실행
+  
+  useEffect(() => {
+    if (fileContent && fileNo) {
+      localStorage.setItem(`${fileNo}_original`, fileContent);
+      setCode(fileContent);
+    }
+  }, [fileNo]); // fileNo 또는 fileContent가 변경될 때마다 실행
+  
+  useEffect(() => {
+    if (fileContent && fileNo) {
+      Object.keys(localStorage).forEach((key) => {
+        if (key !== 'userState') {
+          localStorage.removeItem(key);
+        }
+      });
+
+      localStorage.setItem(`${fileNo}_original`, fileContent);
+      setCode(fileContent);
+      setShowLineNumbers(true);
+    }
+  }, [fileNo, socket, userNo, messageStatus]);
 
   useEffect(() => {
-    if (fileNo && code) {
-      localStorage.setItem(fileNo.toString(), code); // fileNo를 숫자로 저장
-    }
-  }, [fileNo, code]);
 
+    axios.post('http://localhost:9090/api/codeSync/checkWhoLocked', {
+      fileNo,
+      userNo,
+      codeSyncNo,
+    })
+    .then((response) => {
+      const { isLocked } = response.data;
+      setIsReadOnly(!isLocked);
+
+      console.log("받은 리스폰스" , response.data.isLocked);
+
+      try {
+        const lockStatus = response.data.isLocked;
+
+        if (lockStatus === 1 || lockStatus === 2) {
+          setIsLockedByUser(lockStatus);
+        } else if (lockStatus === 3) {
+          setIsLockedByUser(3);
+        }
+
+        if (message?.status === 'checked') {
+          setMessageStatus(message.status);
+        }
+      } catch (error) {
+        console.error('Failed to parse message:', error);
+      } ;
+
+
+    })
+    .catch((error) => console.error('잠금 상태 확인 실패:', error));
+
+    
+  }, [socket,message]);
+ 
+ 
   const handleCodeChange = (newCode) => {
-    setCode(newCode);
+    setCode(newCode); // CodeMirror의 변경 사항을 state로 저장
+
+    // 부모 컴포넌트에 변경된 코드 전달
+    if (onFileContentChange) {
+      onFileContentChange(newCode);
+    }
+
+    // 로컬 스토리지 업데이트
+    if (fileNo) {
+      localStorage.setItem(`${fileNo}_modified`, newCode);
+    }
   };
 
+
+
+  //console.log(code);
+ 
   return (
-    <ContentWrapper>
-      <EditorWrapper>
-        {/* CodeMirror를 포함한 div */}
-        <CodeMirrorWrapper>
+    <>
+      <GlobalStyle />
+      <ContentWrapper>
+        {isLockedByUser === 3 && (
+          <Overlay>
+            <div>
+              <LockIcon>🔒</LockIcon>
+              <LockMessage>
+                작업을 진행 중입니다!
+              </LockMessage>
+            </div>
+          </Overlay>
+        )}
+        <EditorWrapper>
+          <CodeMirrorWrapper>
           <CodeMirror
-            value={code}
-            options={{
-              mode: 'javascript', // 자바스크립트 구문 강조
-              lineNumbers: showLineNumbers,  // 줄 번호 표시 여부를 상태에 따라 설정
-              theme: 'default',   // 테마 설정
-              readOnly: false,    // 편집 가능 설정
-              lineWrapping: true, // 코드 줄 바꿈
-              viewportMargin: 10, // 스크롤을 허용하고 줄을 잘라서 렌더링
-            }}
-            onBeforeChange={(editor, data, value) => handleCodeChange(value)} // 코드 변경 시 처리
-          />
-        </CodeMirrorWrapper>
-      </EditorWrapper>
-    </ContentWrapper>
+  value={code} // `value`에 code 상태 바인딩
+  options={{
+    mode: 'javascript',
+    lineNumbers: showLineNumbers,
+    theme: 'default',
+    lineWrapping: true,
+    readOnly: isReadOnly,
+    inputStyle: 'contenteditable',
+  }}
+  onBeforeChange={(editor, data, value) => handleCodeChange(value)}
+  onChange={(editor, data, value) => {
+    setCode(value); // 코드 변경 시 상태 업데이트
+    
+    if (fileNo) {
+      localStorage.setItem(`${fileNo}_modified`, value); // localStorage에 저장
+    }
+  }}
+/>
+          </CodeMirrorWrapper>
+        </EditorWrapper>
+      </ContentWrapper>
+    </>
   );
 };
 

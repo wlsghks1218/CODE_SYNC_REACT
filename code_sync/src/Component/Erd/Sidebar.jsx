@@ -6,9 +6,8 @@ const Sidebar = ({ onButtonClick }) => {
     <SidebarContainer>
       <h3>Sidebar</h3>
       <button onClick={() => onButtonClick("liveChat")}>Live Chat</button>
-      <button onClick={() => onButtonClick("share")}>Share</button>
+      <button onClick={() => onButtonClick("share")}>Share / Users</button>
       <button onClick={() => onButtonClick("history")}>History</button>
-      <button onClick={() => onButtonClick("projectUsers")}>Project Users</button>
     </SidebarContainer>
   );
 };

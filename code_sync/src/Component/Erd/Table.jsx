@@ -1,69 +1,169 @@
-import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Draggable from "react-draggable";
 import styled from "styled-components";
 
-const Table = ({ table, updatePosition, updateTable, deleteTable, copyTable, handleTableClick }) => {
+const Table = ({ table, updatePosition, updateTable, deleteTable,
+  copyTable, id, startConnection,
+  completeConnection, isAddingArrow
+}) => {
   const tableRef = useRef(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(table.name);
   const [editingField, setEditingField] = useState(null);
   const [editingFieldIndex, setEditingFieldIndex] = useState(null);
+  const [tableFields, setTableFields] = useState([]);
+  const [isConnectionInProgress, setIsConnectionInProgress] = useState(false);
+
+  const [position, setPosition] = useState(table.position || { x: 0, y: 0 });
+
   useEffect(() => {
     if (table.position) {
       setPosition(table.position);
     }
-  }, [table.position]); 
+  }, [table.position]);
 
-  const [position, setPosition] = useState(table.position || { x: 0, y: 0 });  
+  useEffect(() => {
+    console.log("isAddingArrow changed:", isAddingArrow); 
+  }, [isAddingArrow]);
 
+  // 필드 데이터 불러오기
+  const fetchTableFields = useCallback(async () => {
+    try {
+      const response = await axios.get(`http://localhost:9090/erd/tableFields?id=${id}`);
+      if (response.data && Array.isArray(response.data)) {
+        const transformedTableFields = response.data.map((item) => ({
+          erdTableNo: item.erdTableNo,
+          id: item.id,
+          fieldId: item.fieldId,
+          name: item.field,
+          type: item.type,
+          isPrimary: item.isPrimary === "1",
+          isForeign: item.isPrimary === "2",
+          domain: item.domain || "N/A",
+        }));
+
+        const sortedFields = transformedTableFields.sort((a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (b.isPrimary && !a.isPrimary) return 1;
+          if (a.isForeign && !b.isForeign) return -1;
+          if (b.isForeign && !a.isForeign) return 1;
+        });
+
+        setTableFields(sortedFields);
+      }
+    } catch (error) {
+      console.error("Error fetching table fields:", error);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchTableFields();
+  }, [id, tableFields]);
+
+  // 제목 변경
   const handleTitleChange = () => setIsEditingTitle(true);
-
-  const handleTitleSave = () => {
+  const handleTitleSave = () => { 
     updateTable(table.id, { ...table, name: title });
     setIsEditingTitle(false);
   };
 
-  const handleFieldEdit = (fieldType, index) => {
-    setEditingField(fieldType);
-    setEditingFieldIndex(index); // 수정 중인 필드의 인덱스 지정
-  };
-
-  const handleFieldSave = (fieldIndex, fieldType) => {
-    setEditingField(null); // 수정 상태 종료
-    setEditingFieldIndex(null); // 수정 인덱스 종료
-    // 변경된 값을 상태에 반영
-    updateTable(table.id, {
-      ...table,
-      fields: table.fields.map((field, index) =>
-        index === fieldIndex ? { ...field, [fieldType]: field[fieldType] } : field
-      ),
-    });
-  };
-
+  // 필드 추가
   const handleAddField = (isPrimary = false) => {
-    if (isPrimary) {
-      // 이미 Primary 필드가 존재하는 경우 추가하지 않음
-      const primaryExists = table.fields.some((field) => field.isPrimary);
-      if (primaryExists) return;
+    if (isPrimary && tableFields.some((field) => field.isPrimary)) {
+      return;
     }
 
-    const newField = { name: `Field`, isPrimary: isPrimary, domain: "N/A", type: "N/A" };
-    const updatedFields = isPrimary
-      ? [newField, ...table.fields] // Primary 필드는 맨 위에 추가
-      : [...table.fields, newField]; // 일반 필드는 아래에 추가
+    const newField = {
+      id: id,
+      fieldId: Date.now(),
+      name: `Field`,
+      isPrimary: isPrimary,
+      domain: "N/A",
+      type: "N/A",
+    };
 
-    updateTable(table.id, { ...table, fields: updatedFields });
+    const updatedFields = isPrimary ? [newField, ...tableFields] : [...tableFields, newField];
+    setTableFields(updatedFields);
+    updateTable(
+      table.id,
+      { ...table, fields: updatedFields },
+      "add",
+      newField.fieldId
+    );
   };
 
-  const handleDeleteField = (fieldIndex) => {
-    const updatedFields = table.fields.filter((_, index) => index !== fieldIndex);
-    updateTable(table.id, { ...table, fields: updatedFields });
-  };
-
+  // 필드 변경
   const handleFieldChange = (fieldIndex, fieldType, value) => {
-    const updatedFields = [...table.fields];
-    updatedFields[fieldIndex] = { ...updatedFields[fieldIndex], [fieldType]: value };
-    updateTable(table.id, { ...table, fields: updatedFields });
+    const updatedFields = tableFields.map((field, index) =>
+      index === fieldIndex ? { ...field, [fieldType]: value } : field
+    );
+    setTableFields(updatedFields);
+  };
+
+  // 필드 삭제
+  const handleDeleteField = (fieldIndex) => {
+    const deletedField = tableFields[fieldIndex];
+
+    if (deletedField.isPrimary) {
+      updateTable(
+        table.id,
+        { ...table, fields: tableFields },
+        "deletePrimary",
+        deletedField.fieldId
+      );
+    } else {
+      updateTable(
+        table.id,
+        { ...table, fields: tableFields },
+        "delete",
+        deletedField.fieldId
+      );
+    }
+
+    const updatedFields = tableFields.filter((_, index) => index !== fieldIndex);
+    setTableFields(updatedFields);
+
+  };
+
+  const handleFieldEdit = (fieldType, index) => {
+    setEditingField(fieldType);
+    setEditingFieldIndex(index);
+  };
+
+  // 필드 저장
+  const handleFieldSave = () => {
+    if (editingFieldIndex === null) return;
+
+    const updatedTable = {
+      ...table,
+      fields: tableFields,
+    };
+
+    const targetField = tableFields[editingFieldIndex];
+    updateTable(
+      table.id,
+      updatedTable,
+      "edit",
+      targetField.fieldId
+    );
+
+    setEditingField(null);
+    setEditingFieldIndex(null);
+  };
+
+  const handleConnection = (e, position) => {
+    if (!isAddingArrow) return;  // 화살표 추가 상태일 때만 실행
+  
+    if (!isConnectionInProgress) {
+      // 연결 시작
+      startConnection(table.id, position);
+      setIsConnectionInProgress(true);
+    } else {
+      // 연결 완료
+      completeConnection(table.id, position);
+      setIsConnectionInProgress(false);
+    }
   };
 
   return (
@@ -72,112 +172,154 @@ const Table = ({ table, updatePosition, updateTable, deleteTable, copyTable, han
       position={position}
       onStop={(e, data) => {
         const newPosition = { x: data.x, y: data.y };
-        setPosition(newPosition); 
-        updatePosition(table.id, newPosition);  
+        setPosition(newPosition);
+        updatePosition(table.id, newPosition);
       }}
     >
-      <TableWrapper ref={tableRef} onClick={() => handleTableClick(table.id)} className="table">
-        <TableHeader>
-          <TableTitleWrapper>
-            {isEditingTitle ? (
-              <TitleInput
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={handleTitleSave}
-                autoFocus
-              />
-            ) : (
-              <Title onClick={handleTitleChange}>{title}</Title>
-            )}
-          </TableTitleWrapper>
-          <TableActions>
-            <Button onClick={() => handleAddField()}>+</Button>
-            <Button onClick={() => handleAddField(true)}>P</Button> {/* P 버튼 */}
-            <Button onClick={() => copyTable(table)}>C</Button>
-            <Button onClick={() => deleteTable(table.id)}>X</Button>
-          </TableActions>
-        </TableHeader>
-        <TableFields>
-          <thead>
-            <tr>
-              <th>Key</th>
-              <th>Field</th>
-              <th>Domain</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {table.fields.map((field, index) => (
-              <tr key={index}>
-                <TableCell isPrimary={field.isPrimary} isForeign={field.isForeign}>
-                  {field.isPrimary ? "P" : field.isForeign ? "F" : ""}
-                </TableCell>
-                <TableCell
-                  onClick={() => handleFieldEdit("field", index)}
-                  isPrimary={field.isPrimary}
-                  isForeign={field.isForeign}
-                >
-                  {editingField === "field" && editingFieldIndex === index ? (
-                    <FieldInput
-                      type="text"
-                      value={field.name}
-                      onChange={(e) => handleFieldChange(index, "name", e.target.value)}
-                      onBlur={() => handleFieldSave(index, "name")}
-                      autoFocus
-                    />
-                  ) : (
-                    <span>{field.name}</span>
-                  )}
-                </TableCell>
-                <TableCell
-                  onClick={() => handleFieldEdit("domain", index)}
-                  isPrimary={field.isPrimary}
-                  isForeign={field.isForeign}
-                >
-                  {editingField === "domain" && editingFieldIndex === index ? (
-                    <FieldInput
-                      type="text"
-                      value={field.domain}
-                      onChange={(e) => handleFieldChange(index, "domain", e.target.value)}
-                      onBlur={() => handleFieldSave(index, "domain")}
-                      autoFocus
-                    />
-                  ) : (
-                    <span>{field.domain}</span>
-                  )}
-                </TableCell>
-                <TableCell
-                  onClick={() => handleFieldEdit("type", index)}
-                  isPrimary={field.isPrimary}
-                  isForeign={field.isForeign}
-                >
-                  {editingField === "type" && editingFieldIndex === index ? (
-                    <FieldInput
-                      type="text"
-                      value={field.type}
-                      onChange={(e) => handleFieldChange(index, "type", e.target.value)}
-                      onBlur={() => handleFieldSave(index, "type")}
-                      autoFocus
-                    />
-                  ) : (
-                    <span>{field.type}</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <FieldButton onClick={() => handleDeleteField(index)}>X</FieldButton>
-                </TableCell>
+      <TableWrapper ref={tableRef} className="table">
+        <div
+          style={{ display: isAddingArrow ? 'block' : 'none' }}
+        >
+          <TopPoint
+            onClick={(e) => {
+              e.stopPropagation();
+              const position = { x: e.clientX, y: e.clientY };
+              handleConnection(e, position);
+            }}
+          />
+          <RightPoint
+            onClick={(e) => {
+              e.stopPropagation();
+              const position = { x: e.clientX, y: e.clientY };
+              handleConnection(e, position);
+            }}
+          />
+          <BottomPoint
+            onClick={(e) => {
+              e.stopPropagation();
+              const position = { x: e.clientX, y: e.clientY };
+              handleConnection(e, position);
+            }}
+          />
+          <LeftPoint
+            onClick={(e) => {
+              e.stopPropagation();
+              const position = { x: e.clientX, y: e.clientY };
+              handleConnection(e, position);
+            }}
+          />
+          </div>
+          <TableHeader>
+            <TableTitleWrapper>
+              {isEditingTitle ? (
+                <TitleInput
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  autoFocus
+                />
+              ) : (
+                <Title onClick={handleTitleChange}>{title}</Title>
+              )}
+            </TableTitleWrapper>
+            <TableActions>
+              <Button onClick={() => handleAddField()}>+</Button>
+              <Button onClick={() => handleAddField(true)}>P</Button>
+              <Button onClick={() => copyTable(table)}>C</Button>
+              <Button onClick={() => deleteTable(table.id)}>X</Button>
+            </TableActions>
+          </TableHeader>
+          <TableFields>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Field</th>
+                <th>Domain</th>
+                <th>Type</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </TableFields>
+            </thead>
+            <tbody>
+              {Array.isArray(tableFields) && tableFields.length > 0 ? (
+                tableFields.map((field, index) => (
+                  <tr key={field.fieldId || index}>
+                    <TableCell isPrimary={field.isPrimary} isForeign={field.isForeign}>
+                      {field.isPrimary ? "P" : field.isForeign ? "F" : ""}
+                    </TableCell>
+                    {["name", "domain", "type"].map((fieldType) => (
+                      <TableCell
+                        key={`${field.fieldId || index}-${fieldType}`}
+                        onClick={() => handleFieldEdit(fieldType, index)}
+                        isPrimary={field.isPrimary}
+                      >
+                        {editingField === fieldType && editingFieldIndex === index ? (
+                          <FieldInput
+                            type="text"
+                            value={field[fieldType]}
+                            onChange={(e) => handleFieldChange(index, fieldType, e.target.value)}
+                            onBlur={handleFieldSave}
+                            autoFocus
+                          />
+                        ) : (
+                          <span>{field[fieldType]}</span>
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <FieldButton onClick={() => handleDeleteField(index)}>X</FieldButton>
+                    </TableCell>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5">No fields available</td>
+                </tr>
+              )}
+            </tbody>
+          </TableFields>
       </TableWrapper>
     </Draggable>
   );
 };
 
 export default Table;
+
+const ConnectionPoint = styled.div`
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: gray;
+  border-radius: 50%;
+  cursor: pointer;
+  &:hover {
+    background-color: darkred;
+  }
+`;
+
+const TopPoint = styled(ConnectionPoint)`
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+`;
+
+const RightPoint = styled(ConnectionPoint)`
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+`;
+
+const BottomPoint = styled(ConnectionPoint)`
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+`;
+
+const LeftPoint = styled(ConnectionPoint)`
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+`;
 
 const TableWrapper = styled.div`
 
@@ -196,7 +338,7 @@ const TableWrapper = styled.div`
   cursor: grab;
   height: auto; 
   z-index: 10; /* 테이블을 화살표 위로 올리기 */
-  overflow: hidden; /* 겹친 부분 숨기기 */
+  overflow: visible; /* 겹친 부분 숨기기 */
 `;
 
 const TableHeader = styled.div`
@@ -323,4 +465,3 @@ const TableCell = styled.td`
     isPrimary ? "#ffeeba" : isForeign ? "#87ceeb" : "#f1f1f1"}; /* 강조된 색 */
   }
 `;
-

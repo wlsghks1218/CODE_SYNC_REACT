@@ -4,7 +4,9 @@ import axios from 'axios';
 import ContextMenu from './ContextMenu';
 import { useParams } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
-
+import { toast } from "react-toastify";
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 const SidebarContainer = styled.div`
   width: ${(props) => props.width}px;
   background-color: #f4f4f4;
@@ -23,15 +25,32 @@ const FileTreeContainer = styled.div`
 
 const Button = styled.button`
   margin-bottom: 10px;
-  padding: 5px 10px;
   background-color: #4CAF50;
+   margin-left: 10px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 5px 10px;
+  &:hover {
+    background-color: #45a049;
+  }
+`;
+
+const RedButton = styled.button`
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  margin-left: 10px;
+   background-color: #f44336;
   color: white;
   border: none;
   cursor: pointer;
 
+
   &:hover {
-    background-color: #45a049;
+    background-color: #d32f2f;
   }
+
+
 `;
 
 const Text = styled.div`
@@ -50,92 +69,99 @@ const Resizer = styled.div`
   cursor: ew-resize;
 `;
 
-const SidebarLeft = ({ onFileContentChange , data }) => {
+const SidebarLeft = ({ onFileContentChange, data, socket, isSaved,message}) => {
   const { codeSyncNo } = useParams();
   const [folderTree, setFolderTree] = useState(null);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [noDataFound, setNoDataFound] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [copyItem, setCopyItem] = useState(null);
+  
 
   const [contextMenu, setContextMenu] = useState(null);
   const [contextMenuItems, setContextMenuItems] = useState([]);
-  const [socket, setSocket] = useState(null);  // 웹소켓 연결 객체
-  const [lockStatusMap, setLockStatusMap] = useState(new Map());  // 파일 잠금 상태 관리
+  const [lockStatusMap, setLockStatusMap] = useState(new Map());
+  const [selectedItem, setSelectedItem] = useState(null);  // 선택된 항목을 추적
+  const [editingName, setEditingName] = useState(false);  // 이름 수정 모드
+const [newName, setNewName] = useState("");  // 새 이름
+const [nameEditPosition, setNameEditPosition] = useState({ x: 0, y: 0 });  // 입력창 위치
+const [menuItem , setMenuItem] = useState("");
+  
   const userNo = data.user.userNo;
-
-  // WebSocket 연결을 설정하는 함수
-  // WebSocket 연결 설정
-  const connectWebSocket = () => {
-    if (socket) {
-      socket.close(); // 기존 연결이 있다면 닫기
+  useEffect(() => {
+    if (menuItem === "Create file" || menuItem === "Create folder") {
+      setNewName(""); // Create 모드일 때 빈 문자열로 초기화
     }
-
-    const ws = new WebSocket(`ws://localhost:9090/codeSync.do?codeSyncNo=${codeSyncNo}`);
-    
-    ws.onopen = () => {
-      console.log("WebSocket Connected");
-      setSocket(ws);
-    };
-
-    ws.onmessage = async (event) => {
-      console.log("Received message:", event.data);
-      const message = JSON.parse(event.data);
-    
-      // 'status'가 'update'인 경우만 처리
-      if (message.status === "update") {
-        const filePath = message.file.filePath;
-        const locked = message.file.lockedBy !== 0;
-    
-        console.log(`Lock status update for ${filePath}: ${locked ? 'Locked' : 'Unlocked'}`);
-    
-        // 상태 업데이트
-        setLockStatusMap(prevState => {
-          const newMap = new Map(prevState);
-          newMap.set(filePath, locked);
-          return newMap;
-        });
-    
-        // 잠금 상태가 변경된 후 폴더 구조를 다시 가져옵니다.
-        fetchFolderStructureFromDB(codeSyncNo);  // 폴더 구조를 새로 불러오기
-      }
-    };
-    ws.onclose = () => {
-      console.log("WebSocket Disconnected");
-      setTimeout(connectWebSocket, 3000);  // 재연결 시도
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-      ws.close();
-    };
-  };
+  }, [menuItem]);
 
   useEffect(() => {
-    if (codeSyncNo) {
-      connectWebSocket();  // WebSocket 연결 시도
+    if (isSaved) {  
+      fetchFolderStructureFromDB(codeSyncNo);
     }
+  }, [isSaved, codeSyncNo]);
+
+  useEffect(() => {
+    if (socket) {
+
+        // message.status가 존재하는 모든 메시지 처리
+        if (message) {
+          const filePath = message.file?.filePath; // filePath가 없을 수 있으니 안전하게 접근
+          const locked = message.status === "update" ? message.file?.lockedBy !== 0 : false; // 잠금 상태 확인
+  
+          console.log(`Lock status update for ${filePath}: ${locked ? 'Locked' : 'Unlocked'}`);
     
-    return () => {
-      if (socket) {
-        socket.close();  // 컴포넌트 언마운트 시 WebSocket 연결 종료
+          // 상태 업데이트
+          setLockStatusMap((prevState) => {
+            const newMap = new Map(prevState);
+            if (filePath) {
+              newMap.set(filePath, locked);
+            }
+            return newMap;
+          });
+  
+          fetchFolderStructureFromDB(codeSyncNo);
+  
+        
+      };
+  
+     
+    }
+  
+  }, [message, codeSyncNo]);
+ 
+  useEffect(() => {
+    // contextMenu가 열렸을 때만 이벤트 리스너 추가
+    const handleClickOutside = (e) => {
+      // 컨텍스트 메뉴 외부를 클릭했을 때
+      if (contextMenu && !e.target.closest('.context-menu')) {
+        setContextMenu(null);  // 메뉴 닫기
+        setSelectedItem(null);  // 선택된 항목도 초기화
       }
     };
-  }, [codeSyncNo]);
+  
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+  
+    // 컴포넌트 언마운트 시 이벤트 리스너 제거
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenu]);
+  
 
+  
   useEffect(() => {
     if (codeSyncNo) {
       fetchFolderStructureFromDB(codeSyncNo);
     }
   }, [codeSyncNo]);
 
-
   const fetchFolderStructureFromDB = async (codeSyncNo) => {
     setIsLoading(true);
     try {
-      console.log(codeSyncNo);
-  
-      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+      const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {
@@ -147,7 +173,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
           setNoDataFound(false);
         }
       } else {
-        alert('Failed to fetch folder structure from database');
+        toast.error('Failed to fetch folder structure from database');
       }
     } catch (error) {
       setNoDataFound(true);
@@ -216,7 +242,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
   const handleFolderSelect = (e) => {
     const files = fileInputRef.current.files ? Array.from(fileInputRef.current.files) : [];
     if (files.length === 0) {
-      alert("No files selected or browser does not support folder upload.");
+      toast.error("No files selected or browser does not support folder upload.");
       return;
     }
   
@@ -239,7 +265,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
         fetchFolderStructureFromDB(codeSyncNo);  // 업로드 후 폴더 구조 다시 가져오기
       });
     } else {
-      alert("No valid files selected (excluding .class, target, .settings files)");
+      toast.error("No valid files selected (excluding .class, target, .settings files)");
     }
   };
 
@@ -251,7 +277,6 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
   const sendFolderStructureToServer = async (folderStructure) => {
     const folders = [];
     const files = [];
-    console.log("폴더구성용 코드싱크넘버 : " + codeSyncNo);
 
 
     let currentId = 1;
@@ -304,16 +329,16 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
 
       const folderStructure = { folders, files };
 
-      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/uploadFolder', folderStructure, {
+      const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
       if (response.status === 200) {
-        alert('Folder structure uploaded successfully!');
+        toast.success('Folder structure uploaded successfully!');
       } else {
-        alert('Failed to upload folder structure');
+        toast.error('Failed to upload folder structure');
       }
     } catch (error) {
       console.error('Error uploading folder structure:', error);
@@ -382,98 +407,462 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
       return newExpanded;
     });
   };
-
-    const handleFileClick = async (file) => {
+  const handleFileDoubleClick = async (file) => {
     const { path } = file;
-    
+
     try {
-      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
+      // 1. 파일 번호를 가져오기 위해 서버에 요청
+      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
         folderNo: file.folderNo,
         fileName: file.name,
       });
   
       const fileNo = response.data;
       if (fileNo) {
-        console.log('Retrieved fileNo:', fileNo);
-        const lockedBy = userNo;
+      
 
-        
-
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          const message = {
-            code: "3",  // 잠금 요청을 위한 코드
-            codeSyncNo,
-            fileNo,
-            lockedBy,
-            filePath: file.path,  // 파일 경로 추가
-          };
-          socket.send(JSON.stringify(message));  // 잠금 요청 전송
-        } else {
-          console.warn("WebSocket is not open. Unable to send lock request.");
-        }
-
-        onFileContentChange({
-          content: file.content,
+        // 2. 파일 잠금 상태 확인을 위한 요청
+        const lockResponse = await axios.post('http://localhost:9090/api/codeSync/checkFileLockStatus', {
           fileNo: fileNo,
+          userNo: userNo
         });
+
+        const isLockedByAnotherUser = lockResponse.data.isLockedByAnotherUser;
+        
+        if (isLockedByAnotherUser) {
+          // 3. 파일이 다른 사용자가 잠근 상태일 경우, 잠금 요청을 하지 않고 알림
+          toast.error('This file is already locked by another user.');
+        } else {
+          // 4. 파일 잠금 상태가 아니면 웹소켓을 통해 잠금 요청
+          const lockedBy = userNo;
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            const message = {
+              code: "3",  // 잠금 요청을 위한 코드
+              codeSyncNo,
+              fileNo,
+              lockedBy,
+              filePath: file.path,  // 파일 경로 추가
+            };
+            socket.send(JSON.stringify(message));  // 잠금 요청 전송
+          } else {
+            console.warn("WebSocket is not open. Unable to send lock request.");
+          }
+        }
       } else {
-        alert('해당 파일 번호를 가져올 수 없습니다.');
+        toast.error('해당 파일 번호를 가져올 수 없습니다.');
       }
     } catch (error) {
       console.error('파일 정보를 가져오는 중 오류 발생:', error);
-      alert('파일 정보를 불러오는 데 실패했습니다.');
+      toast.error('파일 정보를 불러오는 데 실패했습니다.');
     }
   };
+
+
+  const handleFileClick= async (file) => {
+    const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+      folderNo: file.folderNo,
+      fileName: file.name,
+    });
+
+    const fileNo = response.data;
+
+    onFileContentChange({
+      content: file.content,
+      fileNo: fileNo,
+    });
+  }
+
+
 
   const handleContextMenu = (e, item) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    const menuItems = item.type === 'folder' ? ['Open Folder', 'Delete Folder'] : ['Open File', 'Delete File'];
-
-    const menuWidth = 150;
-    const menuHeight = 25 * menuItems.length;
-
+    setSelectedItem(item);  // 우클릭한 항목을 selectedItem에 설정
+    
+    const menuItems = item.type === 'folder' ? ['Delete Folder', 'Rename', 'Create file','Create folder', 'Copy', 'Paste'] : ['Delete File', 'Rename', 'Copy'];
+    
     let adjustedX = e.clientX;
     let adjustedY = e.clientY;
-
     const maxWidth = window.innerWidth;
     const maxHeight = window.innerHeight;
-
-    if (adjustedX + menuWidth > maxWidth) {
-      adjustedX = maxWidth - menuWidth;
+    
+    if (adjustedX + 150 > maxWidth) {
+      adjustedX = maxWidth - 150;
     }
-
     if (adjustedX < 0) {
       adjustedX = 0;
     }
-
-    if (adjustedY - menuHeight < 0) {
+    if (adjustedY - 10 * menuItems.length < 0) {
       adjustedY = 0;
     } else {
-      adjustedY -= menuHeight;
+      adjustedY -= 10 * menuItems.length;
     }
-
+  
     setContextMenu({ x: adjustedX, y: adjustedY });
     setContextMenuItems(menuItems);
+  
+    // 이름 수정 모드 활성화 시 입력창 위치 설정
+    setNameEditPosition({ x: adjustedX, y: adjustedY });
+    setEditingName(false);  // 수정 모드 초기화
   };
-
+  
   const handleContextMenuItemClick = (item) => {
-    console.log(`Clicked on ${item}`);
+
+    setMenuItem(item);
+  
+    switch (item) {
+          case "Rename":
+          if (!selectedItem) return;
+          if (selectedItem.name === "Root"){
+            toast.error("Root폴더는 변경이 불가합니다");
+            return;
+          }
+          setNewName(selectedItem.name);  // 기존 이름을 입력창에 설정
+          setEditingName(true);  // 이름 수정 상태로 변경
+          break;
+
+          case 'Delete Folder':
+            if (selectedItem.name === "Root") {
+                toast.error("Root 폴더는 삭제가 불가합니다");
+                return;
+            }
+        
+            const isConfirmed = window.confirm(`"${selectedItem.name}" 폴더를 삭제하시겠습니까?`);
+            if (!isConfirmed) {
+                toast.info("폴더 삭제가 취소되었습니다.");
+                return;
+            }
+        
+            const deleteMessage = {
+                code: "8",
+                codeSyncNo: codeSyncNo,
+                folderNo: selectedItem.folderNo,
+            };
+        
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(deleteMessage));
+                toast.success(`${selectedItem.name} 폴더가 삭제되었습니다.`);
+            } else {
+                toast.error("WebSocket is not connected.");
+            }
+        
+            break;
+        
+          case 'Create file':
+            setEditingName(true);  
+            
+            break;
+            case 'Create folder':
+              setEditingName(true);  
+              
+              break;
+
+            case 'Copy':
+            setCopyItem(selectedItem);
+            
+            break;
+           
+            case 'Paste':
+              if (selectedItem.name === copyItem.name){
+                toast.error("동일한 폴더에 붙여넣기를 할 수 없습니다");
+                return;
+              } 
+            console.log(copyItem);
+
+            if (copyItem.type === "folder") {
+              const folderPath = selectedItem.path + "/" + copyItem.name;
+       
+        
+              const pasteFolderMessage = {
+                code: "11",  
+                codeSyncNo : codeSyncNo,
+                folderName: copyItem.name,
+                folderNo : copyItem.folderNo,
+                folderPath : folderPath, 
+                createBy : userNo,
+                newFolderNo : selectedItem.folderNo,
+                type : copyItem.type,
+                userNo : userNo,
+              };
+            
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(pasteFolderMessage));  
+                toast.success(`붙여넣기가 완료되었습니다`);
+              } else {
+                toast.error("WebSocket is not connected.");
+              }
+        
+            }else if(copyItem.type === "file"){
+          
+              const folderPath = selectedItem.path + "/" + copyItem.name;
+                 const pasteFileMessage = {
+              code: "11",  
+              codeSyncNo : codeSyncNo,
+              folderNo : copyItem.folderNo,
+              fileName: copyItem.name,
+              folderPath : folderPath, 
+              newFolderNo : selectedItem.folderNo,
+              userNo : userNo,
+              type : copyItem.type,
+
+            };
+          
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify(pasteFileMessage));  
+              toast.success(`붙여넣기가 완료되었습니다`);
+            } else {
+              toast.error("WebSocket is not connected.");
+            }
+            } 
+
+            setCopyItem(null);
+            
+            break;
+            case 'Delete File':
+              const deleteFileMessage = {
+                code: "12",
+                codeSyncNo: codeSyncNo,
+                folderNo: selectedItem.folderNo,
+                fileName : selectedItem.name,
+            };
+        
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(deleteFileMessage));
+                toast.success(`${selectedItem.name} 파일이 삭제되었습니다.`);
+            } else {
+                toast.error("WebSocket is not connected.");
+            }
+
+              break;
+           
+      default:
+        break;
+    }
     setContextMenu(null);
   };
+  const handleNameChange = () => {
+    if (!newName.trim()) return;  
+   
+    if (selectedItem.type === "folder") {
+      const renameMessage = {
+        code: "7",  
+        codeSyncNo : codeSyncNo,
+        folderName: selectedItem.name,  
+        newName: newName.trim(), 
+      };
+    
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(renameMessage));  
+        toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+      } else {
+        toast.error("WebSocket is not connected.");
+      }
+
+    }else if(selectedItem.type === "file"){
+      if (!isValidFileName(newName)) {
+        toast.error("파일 형식에 맞게 작성해주십시오 (.txt .java .xml 등등)");
+        return; // 입력창 유지
+      }
+         const renameMessage = {
+      code: "7",  
+      codeSyncNo : codeSyncNo,
+      folderNo : selectedItem.folderNo,
+      fileName: selectedItem.name,  
+      newName: newName.trim(), 
+    };
+  
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(renameMessage));  
+      toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+    } else {
+      toast.error("WebSocket is not connected.");
+    }
+    } 
+    setEditingName(false);
+  };
+
+  const isValidFileName = (fileName) => {
+    // 파일 이름 유효성 검사 (특수문자 제한 및 허용 확장자 확인)
+    const invalidCharacters = /[\/\\:*?"<>|]/; // 허용되지 않는 특수문자
+    const validExtensions = /\.(java|xml|properties|yml|yaml|html|jsp|css|js|md|txt|log)$/i; // 허용 확장자
+  
+    // 이름에 허용되지 않는 특수문자가 있거나 확장자가 유효하지 않은 경우 false 반환
+    if (invalidCharacters.test(fileName)) {
+      return false;
+    }
+    return validExtensions.test(fileName);
+  };
+  
+
+  const handleCreateFile = () => {
+    console.log("파일만들기");
+    console.log("파일만들기용 이름", newName);
+    console.log("파일만들기용 folderNo", selectedItem.folderNo);
+  
+    // 확장자 추출
+    const extension = newName.includes(".") ? newName.split(".").pop() : ""; // 확장자 추출
+    console.log("확장자:", extension);
+  
+    let filePath = selectedItem.path + newName;
+    console.log("원본 filePath:", filePath);
+  
+    // "Root/" 제거
+    if (filePath.startsWith("Root/")) {
+      filePath = filePath.replace("Root/", ""); // 앞부분 "Root/" 제거
+    }
+  
+    console.log("처리된 filePath:", filePath);
+  
+    const fileMessage = {
+      code: "9",
+      codeSyncNo: codeSyncNo,
+      fileName: newName,
+      folderNo: selectedItem.folderNo,
+      createdBy: userNo,
+      extension: extension, // 확장자 추가 가능
+      filePath: filePath, // 처리된 경로 사용
+    };
+  
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(fileMessage));
+      toast.success(`${newName} file create`);
+    } else {
+      toast.error("WebSocket is not connected.");
+    }
+  };
+  
+  
+  const handleCreateFolder = () => {
+
+    const folderPath= selectedItem.path;
+    const filePath = folderPath + "/" + newName;
+
+
+    const folderMessage = {
+      code: "10",
+      codeSyncNo: codeSyncNo,
+      folderName: newName,
+      folderNo: selectedItem.folderNo,
+      createdBy: userNo,
+      filePath : filePath,
+  
+    };
+  
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(folderMessage));
+      toast.success(`${newName} folder create`);
+    } else {
+      toast.error("WebSocket is not connected.");
+    }
+  }
+
+  useEffect(() => {
+    if (menuItem === "Create file" || menuItem === "Create folder") {
+      setNewName(""); // Create 모드일 때 빈 문자열로 초기화
+    }
+  }, [menuItem]);
+  
+  const renderRenameInput = () => {
+    if (!editingName || !selectedItem) return null;
+  
+    const handleConfirm = () => {
+      if (menuItem === "Create file") {
+        if (!isValidFileName(newName)) {
+          toast.error("파일 형식에 맞게 작성해주십시오 (.txt .java .xml 등등)");
+          return; // 입력창 유지
+        }
+        handleCreateFile(); // 파일 생성 로직
+      } else if (menuItem === "Create folder") {
+        handleCreateFolder(); // 폴더 생성 로직
+      } else {
+        handleNameChange(); // 이름 변경 로직
+      }
+      setEditingName(false); // 입력 완료 후 종료
+    };
+  
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: nameEditPosition.x,
+          top: nameEditPosition.y,
+          backgroundColor: "#f4f4f4",
+          border: "1px solid #ccc",
+          padding: "5px",
+          display: "flex",
+          alignItems: "center",
+          zIndex: 1000,
+          borderRadius: "4px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)} // 입력값 반영
+          autoFocus
+          placeholder={menuItem === "Create file" || menuItem === "Create folder" ? "Enter name" : ""}
+          style={{
+            padding: "5px 10px",
+            fontSize: "16px",
+            backgroundColor: "#f4f4f4",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            textAlign: "center",
+            outline: "none",
+          }}
+        />
+        <button
+          onClick={handleConfirm}
+          style={{
+            marginLeft: "5px",
+            padding: "5px 10px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Confirm
+        </button>
+        <button
+          onClick={() => setEditingName(false)}
+          style={{
+            marginLeft: "5px",
+            padding: "5px 10px",
+            backgroundColor: "#f44336",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  };
+  
+  
+  
 
   const renderFolder = (node, parentPath = "") => {
     if (!node) return null;
   
     const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
     const isExpanded = expandedFolders.has(currentPath);
-    
-    // 'lockedBy' 값이 null이 아니면 잠금 상태로 표시
-    const isLocked = node.lockedBy !== 0; // lockedBy 값이 0이 아니면 잠금 상태
+  
+    // 선택된 항목에 배경색을 추가하기 위한 조건
+    const isSelected = selectedItem && selectedItem.path === node.path;  // 경로를 비교하여 정확한 항목만 선택
   
     return (
       <div
-        style={{ marginLeft: node.type === "folder" ? "10px" : "20px" }}
+        style={{
+          marginLeft: node.type === "folder" ? "10px" : "20px",
+          backgroundColor: isSelected ? "rgba(128, 128, 128, 0.3)" : "transparent", // 선택된 항목만 배경색 추가
+        }}
         key={currentPath}
         onContextMenu={(e) => handleContextMenu(e, node)}
       >
@@ -483,16 +872,23 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
             onClick={() => toggleFolder(currentPath)}
           >
             <span>{isExpanded ? "-" : "+"}</span> {node.name}
-            {/* 폴더에는 자물쇠 아이콘을 표시하지 않음 */}
           </div>
         ) : (
           node.name !== '.classpath' && (
             <div
-              style={{ margin: "2px 0", cursor: "pointer", display: "flex", alignItems: "center" }}
+              style={{
+                margin: "2px 0",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+              }}
               onClick={() => handleFileClick(node)}
+              onDoubleClick={() => handleFileDoubleClick(node)}
             >
               📄 {node.name}
-              {isLocked && <span style={{ marginLeft: "5px", color: "red", fontSize: "16px" }}>🔒</span>}  {/* 파일에만 자물쇠 표시 */}
+              {node.lockedBy !== 0 && (
+                <span style={{ marginLeft: "5px", color: "red", fontSize: "16px" }}>🔒</span>
+              )}
             </div>
           )
         )}
@@ -502,8 +898,6 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
       </div>
     );
   };
-  
-  
   
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -524,12 +918,99 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
     document.addEventListener("mouseup", onMouseUp);
   };
 
+  const handleFileDeleteClick = async () => {
+    const isConfirmed = window.confirm("폴더 트리를 삭제 하시겠습니까?");
+    if (!isConfirmed) return;
+  
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      setIsLoading(true); // 로딩 상태 시작
+      try {
+        const message = {
+          code: "6",
+          codeSyncNo,
+        };
+        socket.send(JSON.stringify(message));
+  
+        // WebSocket 메시지 완료 확인
+        const onMessageHandler = (event) => {
+          const response = JSON.parse(event.data);
+          if (response.status === "delete_complete") {
+            setFolderTree(null); // 폴더 트리 상태 초기화
+            setNoDataFound(true); // 데이터 없음 상태로 업데이트
+            setIsLoading(false); // 로딩 종료
+            socket.removeEventListener("message", onMessageHandler); // 이벤트 핸들러 제거
+            
+            // 삭제 완료 후 alert
+            toast.success('folderTree Delete Complete.');
+            
+            // 화면 새로고침
+            window.location.reload();
+          }
+        };
+  
+        socket.addEventListener("message", onMessageHandler);
+      } catch (error) {
+        console.error("Error deleting folder tree:", error);
+        setIsLoading(false); // 오류 발생 시 로딩 종료
+      }
+    } else {
+      console.warn("WebSocket is not open. Unable to send delete request.");
+    }
+  };
+  
+  const handleFileExport = (folderStructure) => {
+    if (!Array.isArray(folderStructure)) {
+      // folderStructure가 객체라면 배열로 래핑
+      folderStructure = [folderStructure];
+    }
+  
+    // 사용자가 ZIP 파일 이름을 입력하도록 하는 팝업
+    const zipFileName = prompt("다운로드할 ZIP 파일의 이름을 입력하세요 (예: my_folder.zip)", "folder_structure.zip");
+  
+    if (!zipFileName) {
+      alert("파일 이름을 입력해주세요.");
+      return;
+    }
+  
+    const zip = new JSZip();
+    
+    // 폴더 구조를 재귀적으로 순회하며 zip에 추가
+    const addFilesToZip = (node, parentPath = "") => {
+      const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+      
+      if (node.type === "folder") {
+        // 폴더가 있으면 폴더 내에 파일들을 추가
+        if (node.children) {
+          node.children.forEach(child => addFilesToZip(child, currentPath));
+        }
+      } else {
+        // 파일이면 해당 파일을 zip에 추가 (파일 내용을 그대로)
+        zip.file(currentPath, node.content); // 실제 파일 내용 확인 필요
+      }
+    };
+  
+    // 폴더 트리 구조를 zip에 추가
+    folderStructure.forEach(node => addFilesToZip(node));
+  
+    // zip 파일 생성 후 다운로드
+    zip.generateAsync({ type: "blob" }).then(content => {
+      // 다운로드를 위해 Blob을 생성하여 파일로 저장
+      saveAs(content, zipFileName); // 사용자 지정 이름으로 파일 저장
+    });
+  };
+  
+  
   return (
     <SidebarContainer width={sidebarWidth}>
-      {folderTree === null && (
+      {folderTree === null ? (
         <Button onClick={handleFileInputClick}>Upload Folder</Button>
-      )}
-
+      ) : [
+        <RedButton onClick={handleFileDeleteClick}>Delete FolderTree</RedButton>, 
+        <Button onClick={() => handleFileExport(folderTree)}>Export FolderTree</Button>
+      ]
+      
+      } 
+  
       <input
         type="file"
         ref={fileInputRef}
@@ -538,10 +1019,11 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
         onChange={handleFolderSelect}
         multiple
       />
-
-      <FileTreeContainer>
+       {renderRenameInput()} {/* 이름 수정 입력창 */}
+  
+  <FileTreeContainer>
         {isLoading ? (
-          <LoadingSpinner />  // 로딩 중이면 스피너를 표시
+          <LoadingSpinner />
         ) : noDataFound ? (
           <Text>select and upload folder</Text>
         ) : (
@@ -559,6 +1041,7 @@ const SidebarLeft = ({ onFileContentChange , data }) => {
       )}
     </SidebarContainer>
   );
+  
 };
 
 export default SidebarLeft;
