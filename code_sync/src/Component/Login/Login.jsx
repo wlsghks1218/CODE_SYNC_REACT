@@ -88,7 +88,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:9090/member/login",
+        "http://116.121.53.142:9100/member/login",
         {
           userId: userId,
           userPw: userPw,
@@ -96,8 +96,8 @@ const Login = () => {
         },
         {
           headers: { "Content-Type": "application/json" },
-          withCredentials: true, // 쿠키를 포함하도록 설정
-          maxRedirects: 0, // 리다이렉트를 방지
+          withCredentials: true,
+          maxRedirects: 0,
         }
       );
       
@@ -109,7 +109,6 @@ const Login = () => {
         setIsValid(false);
       }
     } catch (error) {
-      console.error("로그인 오류: ", error);
       setIsValid(false);
     }
   };

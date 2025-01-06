@@ -36,7 +36,7 @@ const CodeSyncMain = ({ data }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = new WebSocket(`ws://localhost:9090/codeSync.do?codeSyncNo=${codeSyncNo}`);
+    const newSocket = new WebSocket(`ws://116.121.53.142:9100/codeSync.do?codeSyncNo=${codeSyncNo}`);
     setSocket(newSocket);
 
     return () => {

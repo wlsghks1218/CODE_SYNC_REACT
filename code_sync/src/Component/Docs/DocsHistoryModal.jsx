@@ -94,13 +94,12 @@ const DocsHistoryModal = ({ isOpen, onClose, projectNo, columnIndex }) => {
     const fetchDocsHistory = async () => {
 
       try {
-        const response = await axios.get("http://localhost:9090/docs/getDocsHistory", {
+        const response = await axios.get("http://116.121.53.142:9100/docs/getDocsHistory", {
           params: { projectNo, columnIndex },
         });
   
         setDocsHistory(response.data || []);
       } catch (error) {
-        console.error("업로드 내역 가져오기 실패:", error);
       }
     };
   

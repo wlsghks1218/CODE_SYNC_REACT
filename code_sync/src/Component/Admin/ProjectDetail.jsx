@@ -74,10 +74,9 @@ const ProjectDetail = () => {
     useEffect(() => {
         const fetchProject = async () => {
             try {
-                const response = await axios.get(`http://localhost:9090/admin/project/${id}`);
+                const response = await axios.get(`http://116.121.53.142:9100/admin/project/${id}`);
                 setProject(response.data);
             } catch (error) {
-                console.error('Failed to fetch project:', error);
             }
         };
         fetchProject();
@@ -90,22 +89,20 @@ const ProjectDetail = () => {
 
     const handleUpdate = async () => {
         try {
-            await axios.put(`http://localhost:9090/admin/updateProject`, project);
+            await axios.put(`http://116.121.53.142:9100/admin/updateProject`, project);
             alert('프로젝트 정보가 업데이트되었습니다.');
             navigate(-1);
         } catch (error) {
-            console.error('Failed to update project:', error);
         }
     };
 
     const handleDelete = async () => {
         if (window.confirm('정말 삭제하시겠습니까?')) {
             try {
-                await axios.delete(`http://localhost:9090/admin/deleteProject/${id}`);
+                await axios.delete(`http://116.121.53.142:9100/admin/deleteProject/${id}`);
                 alert('프로젝트가 삭제되었습니다.');
                 navigate(-1);
             } catch (error) {
-                console.error('Failed to delete project:', error);
             }
         }
     };

@@ -61,11 +61,11 @@ const SkillName = styled.div`
 `;
 
 const SkillImage = styled.img`
-    width: 24px;
+    width: auto;
     height: 24px;
+    max-width: 40px; 
     margin-right: 8px;
     border-radius: 4px;
-    object-fit: cover;
 `;
 
 const RemoveButton = styled.button`
@@ -121,6 +121,7 @@ const Sidebar = ({ isMaster, skills, onAddSkill, onRemoveSkill, onDropSkill }) =
     return (
         <SidebarContainer onDrop={handleDrop} onDragOver={allowDrop}>
             <h3>Skill List</h3>
+            <span style={{marginBottom : "10px"}}>이미지 크기 : 24px * 24px</span>
             <AddSkillContainer>
                 <Input
                     type="text"

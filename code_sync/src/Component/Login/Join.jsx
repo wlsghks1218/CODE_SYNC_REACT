@@ -136,7 +136,7 @@ const Join = () => {
     }
   
     try {
-      const response = await axios.post('http://localhost:9090/member/checkUsername/', { userId });
+      const response = await axios.post('http://116.121.53.142:9100/member/checkUsername/', { userId });
       if (response.data.isDuplicate) {
         setIsIdDuplicate(true);
         alert('이미 존재하는 아이디입니다.');
@@ -160,12 +160,10 @@ const Join = () => {
     }
     setIsSendingVerification(true);
     try {
-      const response = await axios.post('http://localhost:9090/member/sendVerification', { userEmail });
+      const response = await axios.post('http://116.121.53.142:9100/member/sendVerification', { userEmail });
       if (response.status === 200) {
-        console.log(response.data);
         const { verificationCode } = response.data;
         setServerCode(verificationCode);
-        console.log(serverCode);
         alert('인증 코드가 이메일로 전송되었습니다.');
         setIsVerificationSent(true);
       }
@@ -177,7 +175,6 @@ const Join = () => {
   };
 
   const verifyCode = () => {
-    console.log("입력 코드 : " + inputCode + "서버 코드 : " + serverCode);
     if (inputCode === serverCode) {
       alert('인증이 완료되었습니다.');
       setIsVerified(true);
@@ -240,7 +237,7 @@ const Join = () => {
     };
 
     try {
-      const response = await axios.post('http://localhost:9090/member/signUp', requestData);
+      const response = await axios.post('http://116.121.53.142:9100/member/signUp', requestData);
       if (response.status === 200) {
         alert('회원가입이 완료되었습니다!');
         if (window.confirm('로그인 페이지로 이동하시겠습니까?')) {

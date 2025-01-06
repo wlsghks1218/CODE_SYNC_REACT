@@ -85,18 +85,17 @@ const LiveChat = () => {
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
-      console.error('Error fetching userId:', error);
     }
   }
 
   // 서버에서 채팅 기록을 가져오는 함수
   async function getChatHistory() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/chatHistory?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/chatHistory?erdNo=${erdNo}`);
       const chatHistory = response.data;
   
       // 내 메세지 판별
@@ -107,7 +106,6 @@ const LiveChat = () => {
   
       setMessages(processedMessages);
     } catch (error) {
-      console.error('Error fetching chat history:', error);
     }
   }
 
@@ -122,7 +120,6 @@ const LiveChat = () => {
     setSocket(socket);
 
     socket.onopen = () => {
-      console.log('Connected to LiveChatWebSocket server');
     };
 
     socket.onmessage = (event) => {
@@ -143,7 +140,6 @@ const LiveChat = () => {
     };
 
     socket.onclose = () => {
-      console.log('Disconnected from LiveChat WebSocket server');
     };
 
     return () => {

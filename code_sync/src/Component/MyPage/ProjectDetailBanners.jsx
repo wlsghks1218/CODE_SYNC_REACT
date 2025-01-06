@@ -157,13 +157,17 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     try {
       await axios.post("http://localhost:9090/project/updatePortfolio", {
         projectNo,
-        portfolioLink,
+        temporaryLink,
       });
       alert("포트폴리오 링크가 성공적으로 저장되었습니다.");
+      setPortfolioLink(temporaryLink);
       setShowPortfolioModal(false);
+      
+      const updatedProject = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
+        params: { projectNo },
+      });
+      setProject(updatedProject.data); // 프로젝트 정보 갱신
     } catch (error) {
-      console.error("Error saving portfolio link:", error);
-      alert("포트폴리오 링크 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -172,22 +176,20 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   };
 
   useEffect(() => {
-    console.log(projectNo);
     const fetchRoutes = async () => {
       try {
-        const projectInfo = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
+        const projectInfo = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
           params: { projectNo: projectNo }
         })
 
-        console.log("projectNo로 받아온 프로젝트 정보 :" + JSON.stringify(projectInfo.data))
         setProject(projectInfo.data);
         setEditedProject(projectInfo.data);
         setPortfolioLink(projectInfo.data.portfolioLink || "");
 
         const responses = await Promise.all([
-          axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
-          axios.get("http://localhost:9090/project/checkCode", { params: { projectNo } }),
-          axios.get("http://localhost:9090/project/checkDocs", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkErd", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkCode", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkDocs", { params: { projectNo } }),
         ]);
         setRoutes({
           erdNo: responses[0].data.erdNo,
@@ -197,7 +199,6 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
           skills: projectNo
         });
       } catch (error) {
-        console.error("Error fetching project details:", error);
       } 
     };
     fetchRoutes();
@@ -226,7 +227,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     // eslint-disable-next-line no-restricted-globals
     if (confirm("프로젝트 진짜 지울거에요?")) {
       try {
-        const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
+        const response = await axios.get(`http://116.121.53.142:9100/project/deleteProject`, {
           params: { projectNo },
         });
         if (response.data.success) {
@@ -237,8 +238,6 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
           alert("프로젝트 삭제에 실패했습니다.");
         }
       } catch (error) {
-        console.error("프로젝트 삭제 중 오류 발생:", error);
-        alert("프로젝트 삭제 중 오류가 발생했습니다.");
       }
     }
   };
@@ -254,7 +253,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const handleUpdateProject = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:9090/project/updateProject",
+        "http://116.121.53.142:9100/project/updateProject",
         { ...editedProject }
       );
       if (response.data > 0) {
@@ -262,11 +261,8 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
         setIsEditing(false);
         setProject(editedProject); // 수정된 값 반영
       } else {
-        alert("프로젝트 수정에 실패했습니다.");
       }
     } catch (error) {
-      console.error("프로젝트 수정 중 오류 발생:", error);
-      alert("프로젝트 수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -412,7 +408,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
                 <Input
                   value={temporaryLink}
                   onChange={(e) => setTemporaryLink(e.target.value)} // 임시 상태 업데이트
-                  placeholder="https://example.com"
+                  placeholder="http://example.com"
                 />
                 <div>
                   <Button

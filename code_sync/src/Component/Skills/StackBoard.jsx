@@ -35,11 +35,11 @@ const SkillName = styled.span`
 `;
 
 const SkillImage = styled.img`
-    width: 24px;
+    width: auto;
     height: 24px;
+    max-width: 40px; 
     margin-right: 8px;
     border-radius: 4px;
-    object-fit: cover;
 `;
 
 const RemoveButton = styled.button`

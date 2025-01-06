@@ -20,6 +20,17 @@ const Wrapper = styled.div`
     width: 100%;
 `;
 
+const AlertMessage = styled.div`
+    margin: 20px 0;
+    padding: 10px 20px;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 5px;
+    font-size: 14px;
+    text-align: center;
+`;
+
 const Skills = () => {
     const { projectNo } = useParams();
     const defaultSkills = [
@@ -38,20 +49,18 @@ const Skills = () => {
 
     const fetchProjectInfo = async () => {
         try {
-            const response = await axios.get(`http://localhost:9090/project/getProjectByProjectNo`, {
+            const response = await axios.get(`http://116.121.53.142:9100/project/getProjectByProjectNo`, {
                 params: { projectNo },
             });
             const project = response.data;
             setIsMaster(project.muserNo === user?.user?.userNo);
         } catch (error) {
-            console.error('프로젝트 정보 가져오기 실패:', error);
         }
     };
     const insertDefaultSkills = async (defaultSkills) => {
         try {
-            await axios.post(`http://localhost:9090/skill/insertDefaultSkills`, defaultSkills);
+            await axios.post(`http://116.121.53.142:9100/skill/insertDefaultSkills`, defaultSkills);
         } catch (error) {
-            console.error('기본 스킬 추가 실패:', error);
         }
     };
 
@@ -60,14 +69,13 @@ const Skills = () => {
         if (isFetching) return;
         isFetching = true;
         try {
-            const response = await axios.get(`http://localhost:9090/skill/getSkillList`, {
+            const response = await axios.get(`http://116.121.53.142:9100/skill/getSkillList`, {
                 params: { projectNo },
             });
             const skillList = response.data;
     
             // 서버에서 가져온 스킬 리스트가 비어있는지 확인
             if (!skillList || skillList.length === 0) {
-                console.log('Default skills are being added.');
                 setSkills(defaultSkills);
                 await insertDefaultSkills(defaultSkills);
             } else {
@@ -90,7 +98,6 @@ const Skills = () => {
                 setSkills(uncategorizedSkills);
             }
         } catch (error) {
-            console.error('스킬 리스트 가져오기 실패:', error);
         }
     };
 
@@ -100,10 +107,8 @@ const Skills = () => {
     }, []);
 
     const addSkill = async (skillName, imageUrl) => {
-        console.log(skillName, imageUrl);
         // 입력값이 없는 경우 처리
         if (!skillName || !imageUrl) {
-            console.warn('스킬 이름과 이미지 URL을 입력하세요.');
             return;
         }
     
@@ -112,14 +117,12 @@ const Skills = () => {
         const trimmedImageUrl = imageUrl.trim();
     
         if (!isMaster || !trimmedSkillName || !trimmedImageUrl) {
-            console.warn('유효한 스킬 이름과 이미지를 입력하세요.');
             return;
         }
     
         // 중복 확인
         const isDuplicate = skills.some((skill) => skill.skillName === trimmedSkillName);
         if (isDuplicate) {
-            console.warn('이미 존재하는 스킬입니다.');
             return;
         }
     
@@ -127,9 +130,8 @@ const Skills = () => {
         setSkills((prevSkills) => [...prevSkills, newSkill]);
     
         try {
-            await axios.post(`http://localhost:9090/skill/addSkill`, newSkill);
+            await axios.post(`http://116.121.53.142:9100/skill/addSkill`, newSkill);
         } catch (error) {
-            console.error('Failed to add skill:', error);
         }
     };
     
@@ -142,11 +144,10 @@ const Skills = () => {
         );
     
         try {
-            await axios.delete(`http://localhost:9090/skill/deleteSkill`, {
+            await axios.delete(`http://116.121.53.142:9100/skill/deleteSkill`, {
                 data: { projectNo, skillName },
             });
         } catch (error) {
-            console.error('Failed to delete skill:', error);
         }
     };
 
@@ -157,7 +158,7 @@ const Skills = () => {
             const category = targetCategory === 'sidebar' ? '' : targetCategory;
     
             // 서버 업데이트
-            await axios.put(`http://localhost:9090/skill/updateCategory`, {
+            await axios.put(`http://116.121.53.142:9100/skill/updateCategory`, {
                 projectNo,
                 skillName,
                 category,
@@ -190,7 +191,6 @@ const Skills = () => {
                 }));
             }
         } catch (error) {
-            console.error('스킬 이동 실패:', error);
         }
     };
     
@@ -206,7 +206,6 @@ const Skills = () => {
             );
     
             if (!skillToReturn) {
-                console.warn('Skill not found in source category.');
                 return;
             }
     
@@ -227,13 +226,12 @@ const Skills = () => {
             ]);
     
             // 서버 업데이트
-            await axios.put(`http://localhost:9090/skill/updateCategory`, {
+            await axios.put(`http://116.121.53.142:9100/skill/updateCategory`, {
                 projectNo,
                 skillName,
                 category: '',
             });
         } catch (error) {
-            console.error('Failed to return skill to Sidebar:', error);
         }
     };
     
@@ -242,6 +240,11 @@ const Skills = () => {
     return (
         <Container>
             <h2>기술 스택</h2>
+            {!isMaster && (
+                <AlertMessage>
+                    프로젝트 생성자만 기술 스택을 수정할 수 있습니다.
+                </AlertMessage>
+            )}
             <Wrapper>
                 <Sidebar skills={skills} onAddSkill={addSkill} onRemoveSkill={removeSkill} isMaster={isMaster} onDropSkill={onDropSkill}/>
                 <StackBoard

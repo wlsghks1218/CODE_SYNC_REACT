@@ -113,13 +113,12 @@ function ProjectHistory() {
 
   const handleChange = (newDate) => {
     setDate(newDate);
-    console.log("선택한 날짜:", newDate);
   };
 
   useEffect(() => {
     const fetchHistories = async () => {
         try {
-          const docsResponse = await axios.get("http://localhost:9090/gantt/getDocsHistoryForGantt", {
+          const docsResponse = await axios.get("http://116.121.53.142:9100/gantt/getDocsHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -129,29 +128,28 @@ function ProjectHistory() {
               updateDate: new Date(doc.updateDate),
             }))
           );
-          // const codeResponse = await axios.get("/code/getCodeHistoryForGantt", {
-          //   params: { projectNo },
-          // });
+          const codeResponse = await axios.get("http://116.121.53.142:9100/gantt/getCodeHistoryForGantt", {
+            params: { projectNo },
+          });
           
-          // const erdResponse = await axios.get("/erd/getErdHistoryForGantt", {
-          //   params: { projectNo },
-          // });
+          const erdResponse = await axios.get("http://116.121.53.142:9100/gantt/getErdHistoryForGantt", {
+            params: { projectNo },
+          });
       
-          // setCodeHistory(
-          //   codeResponse.data.map((code) => ({
-          //     ...code,
-          //     updateDate: new Date(code.updateDate),
-          //   }))
-          // );
+          setCodeHistory(
+            codeResponse.data.map((code) => ({
+              ...code,
+              updateDate: new Date(code.updateDate),
+            }))
+          );
       
-          // setErdHistory(
-          //   erdResponse.data.map((erd) => ({
-          //     ...erd,
-          //     updateDate: new Date(erd.updateDate),
-          //   }))
-          // );
+          setErdHistory(
+            erdResponse.data.map((erd) => ({
+              ...erd,
+              updateDate: new Date(erd.erdUpdateDate),
+            }))
+          );
         } catch (error) {
-          console.error("Error fetching histories:", error);
         }
       };
     fetchHistories();

@@ -135,7 +135,6 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ViewHistory 상태 추가
 
   const handleInviteUser = () => {
-    console.log('자자 옵니다 옵니다');
   };
 
   const handleSaveCode = () => {
@@ -151,7 +150,7 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
 
     if (content && fileNo) {
       axios
-        .post('http://localhost:9090/api/codeSync/saveCode', { fileNo, content , codeSyncNo ,userId})
+        .post('http://116.121.53.142:9100/api/codeSync/saveCode', { fileNo, content , codeSyncNo ,userId})
         .then((response) => {
           const unlockRequest = {
             code: '4',
@@ -161,10 +160,8 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
           };
 
           if (socket && socket.readyState === WebSocket.OPEN) {
-            console.log('Sending unlock request via WebSocket:', unlockRequest);
             socket.send(JSON.stringify(unlockRequest));
           } else {
-            console.log('WebSocket not open. Current readyState:', socket?.readyState);
           }
 
           setMessage('수정이 완료되었습니다');
@@ -177,10 +174,8 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
           onSaveStatusChange();
         })
         .catch((error) => {
-          console.error('Error saving code:', error);
         });
     } else {
-      console.log('No modified content or fileNo found.');
       setMessage('수정사항이 없습니다');
       setMessageType('error');
       setShowMessage(true);
@@ -212,10 +207,8 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
     };
 
     if (socket && socket.readyState === WebSocket.OPEN) {
-      console.log('Sending unlock request via WebSocket:', unlockRequest);
       socket.send(JSON.stringify(unlockRequest));
     } else {
-      console.log('WebSocket not open. Current readyState:', socket?.readyState);
     }
     onSaveStatusChange();
 

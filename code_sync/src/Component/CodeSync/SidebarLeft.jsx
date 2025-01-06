@@ -109,7 +109,6 @@ const [menuItem , setMenuItem] = useState("");
           const filePath = message.file?.filePath; // filePath가 없을 수 있으니 안전하게 접근
           const locked = message.status === "update" ? message.file?.lockedBy !== 0 : false; // 잠금 상태 확인
   
-          console.log(`Lock status update for ${filePath}: ${locked ? 'Locked' : 'Unlocked'}`);
     
           // 상태 업데이트
           setLockStatusMap((prevState) => {
@@ -161,7 +160,7 @@ const [menuItem , setMenuItem] = useState("");
   const fetchFolderStructureFromDB = async (codeSyncNo) => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {
@@ -315,7 +314,6 @@ const [menuItem , setMenuItem] = useState("");
           resolve();
         };
         reader.onerror = (error) => {
-          console.error('Error reading file:', fileEntry.fileName, error);
           reject(error);
         };
         reader.readAsText(fileEntry.file);
@@ -329,7 +327,7 @@ const [menuItem , setMenuItem] = useState("");
 
       const folderStructure = { folders, files };
 
-      const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -341,7 +339,6 @@ const [menuItem , setMenuItem] = useState("");
         toast.error('Failed to upload folder structure');
       }
     } catch (error) {
-      console.error('Error uploading folder structure:', error);
     }
   };
 
@@ -392,7 +389,6 @@ const [menuItem , setMenuItem] = useState("");
       });
     });
 
-    console.log("Generated Folder Structure from Uploaded Files:", JSON.stringify(root, null, 2));
     return root;
   };
 
@@ -412,7 +408,7 @@ const [menuItem , setMenuItem] = useState("");
 
     try {
       // 1. 파일 번호를 가져오기 위해 서버에 요청
-      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
         folderNo: file.folderNo,
         fileName: file.name,
       });
@@ -422,7 +418,7 @@ const [menuItem , setMenuItem] = useState("");
       
 
         // 2. 파일 잠금 상태 확인을 위한 요청
-        const lockResponse = await axios.post('http://localhost:9090/api/codeSync/checkFileLockStatus', {
+        const lockResponse = await axios.post('http://116.121.53.142:9100/api/codeSync/checkFileLockStatus', {
           fileNo: fileNo,
           userNo: userNo
         });
@@ -445,21 +441,19 @@ const [menuItem , setMenuItem] = useState("");
             };
             socket.send(JSON.stringify(message));  // 잠금 요청 전송
           } else {
-            console.warn("WebSocket is not open. Unable to send lock request.");
           }
         }
       } else {
         toast.error('해당 파일 번호를 가져올 수 없습니다.');
       }
     } catch (error) {
-      console.error('파일 정보를 가져오는 중 오류 발생:', error);
       toast.error('파일 정보를 불러오는 데 실패했습니다.');
     }
   };
 
 
   const handleFileClick= async (file) => {
-    const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+    const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
       folderNo: file.folderNo,
       fileName: file.name,
     });
@@ -568,7 +562,6 @@ const [menuItem , setMenuItem] = useState("");
                 toast.error("동일한 폴더에 붙여넣기를 할 수 없습니다");
                 return;
               } 
-            console.log(copyItem);
 
             if (copyItem.type === "folder") {
               const folderPath = selectedItem.path + "/" + copyItem.name;
@@ -696,23 +689,17 @@ const [menuItem , setMenuItem] = useState("");
   
 
   const handleCreateFile = () => {
-    console.log("파일만들기");
-    console.log("파일만들기용 이름", newName);
-    console.log("파일만들기용 folderNo", selectedItem.folderNo);
   
     // 확장자 추출
     const extension = newName.includes(".") ? newName.split(".").pop() : ""; // 확장자 추출
-    console.log("확장자:", extension);
   
     let filePath = selectedItem.path + newName;
-    console.log("원본 filePath:", filePath);
   
     // "Root/" 제거
     if (filePath.startsWith("Root/")) {
       filePath = filePath.replace("Root/", ""); // 앞부분 "Root/" 제거
     }
   
-    console.log("처리된 filePath:", filePath);
   
     const fileMessage = {
       code: "9",
@@ -950,11 +937,9 @@ const [menuItem , setMenuItem] = useState("");
   
         socket.addEventListener("message", onMessageHandler);
       } catch (error) {
-        console.error("Error deleting folder tree:", error);
         setIsLoading(false); // 오류 발생 시 로딩 종료
       }
     } else {
-      console.warn("WebSocket is not open. Unable to send delete request.");
     }
   };
   

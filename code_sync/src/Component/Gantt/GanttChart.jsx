@@ -212,12 +212,11 @@ function GanttChart() {
     useEffect(() => {
         const fetchGanttData = async () => {
             try {
-                const response = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const response = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (response.status === 200) {
                     setGanttList(response.data);
                 }
             } catch (error) {
-                console.error("간트 데이터 불러오기 실패:", error);
             }
         };
 
@@ -308,17 +307,15 @@ function GanttChart() {
         };
 
         try {
-            const response = await axios.post("http://localhost:9090/gantt/createGantt", ganttData);
+            const response = await axios.post("http://116.121.53.142:9100/gantt/createGantt", ganttData);
             if (response.status === 200) {
-                const updatedList = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const updatedList = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (updatedList.status === 200) {
                     setGanttList(updatedList.data);
                 }
                 closeModal();
             }
         } catch (error) {
-            console.error("간트 차트 생성 중 오류 발생:", error);
-            alert("간트 차트 생성 중 문제가 발생했습니다.");
         }
     };
 
@@ -329,14 +326,12 @@ function GanttChart() {
         }
 
         try {
-            const response = await axios.delete(`http://localhost:9090/gantt/${selectedGantt.ganttNo}`);
+            const response = await axios.delete(`http://116.121.53.142:9100/gantt/${selectedGantt.ganttNo}`);
             if (response.status === 200) {
                 setGanttList(ganttList.filter((item) => item.ganttNo !== selectedGantt.ganttNo));
                 closeModal();
             }
         } catch (error) {
-            console.error("일정 삭제 중 오류 발생:", error);
-            alert("일정 삭제 중 문제가 발생했습니다.");
         }
     };
 
@@ -346,7 +341,6 @@ function GanttChart() {
             return;
         }
         
-        console.log(selectedGantt.ganttNo);
         // 수정 데이터 객체 생성
         const updatedGanttData = {
             ganttNo: selectedGantt.ganttNo, // ganttNo 포함 확인
@@ -358,10 +352,10 @@ function GanttChart() {
         };
     
         try {
-            const response = await axios.put("http://localhost:9090/gantt/updateGantt", updatedGanttData);
+            const response = await axios.put("http://116.121.53.142:9100/gantt/updateGantt", updatedGanttData);
             if (response.status === 200) {
                 // 서버 응답에 따라 상태 업데이트
-                const updatedList = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const updatedList = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (updatedList.status === 200) {
                     setGanttList(updatedList.data);
                 }
@@ -369,8 +363,6 @@ function GanttChart() {
                 alert("수정이 완료되었습니다.");
             }
         } catch (error) {
-            console.error("간트 차트 수정 중 오류 발생:", error);
-            alert("간트 차트 수정 중 문제가 발생했습니다.");
         }
     };
     

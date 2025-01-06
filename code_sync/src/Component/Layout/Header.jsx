@@ -217,7 +217,7 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
       try {
         // 로그아웃 요청
         await axios.post(
-          "http://localhost:9090/member/logout",
+          "http://116.121.53.142:9100/member/logout",
           { userId: user.user?.userId },
           {
             withCredentials: true, // 쿠키 포함
@@ -233,10 +233,8 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
   
         navigate("/");
       } catch (error) {
-        console.error("Logout failed:", error);
       }
     } else {
-      console.warn("No user found for logout");
     }
   };
   
@@ -248,7 +246,7 @@ const handleCreateProject = async () => {
     }
 
     try {
-        const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
+        const response = await axios.get(`http://116.121.53.142:9100/project/getProjectList?userNo=${user.user.userNo}`);
 
         if (response.data.length >= 3) {
             alert("프로젝트는 최대 3개까지 생성할 수 있습니다.");
@@ -263,7 +261,6 @@ const handleCreateProject = async () => {
         });
         setIsModalOpen(true);
     } catch (error) {
-        console.error("프로젝트 목록 확인 중 오류 발생:", error);
     }
 };
   const handleCloseLoginRequiredModal = () => {
@@ -297,7 +294,7 @@ const handleSubmit = async () => {
       return;
   }
   try {
-      await axios.post('http://localhost:9090/project/createProject', projectInfo, {
+      await axios.post('http://116.121.53.142:9100/project/createProject', projectInfo, {
           headers: {
               'Content-Type': 'application/json',
           },
@@ -306,7 +303,6 @@ const handleSubmit = async () => {
 
       handleCloseModal();
   } catch (error) {
-      console.error('프로젝트 생성 실패:', error);
   }
 };
     return (
@@ -319,7 +315,7 @@ const handleSubmit = async () => {
             : <StyledButton onClick={handleLogout}>LOGOUT</StyledButton>
           }
           {(!isAuthenticated) ?
-            <StyledButton><Link to='/join'>SIGN IN</Link></StyledButton> :
+            <StyledButton><Link to='/join'>SIGN UP</Link></StyledButton> :
             <StyledButton><Link to='/myPage'>MY PAGE</Link></StyledButton>}
           <StyledButton onClick={handleCreateProject}>CREATE PROJECT</StyledButton>
           {user.user?.authAdmin === 2 && (

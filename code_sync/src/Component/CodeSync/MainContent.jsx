@@ -86,7 +86,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
   const { codeSyncNo } = useParams();
 
   useEffect(() => { 
-      axios.post('http://localhost:9090/api/codeSync/checkLocked', {
+      axios.post('http://116.121.53.142:9100/api/codeSync/checkLocked', {
         fileNo,
         userNo,
         codeSyncNo,
@@ -95,14 +95,12 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
         const { isLocked } = response.data;
         setIsReadOnly(!isLocked);
       })
-      .catch((error) => console.error('잠금 상태 확인 실패:', error));
     
   }, [fileContent,message]);
 
 
   useEffect(() => {
     if (fileContent && fileContent !== code) {
-      console.log("Updating code with fileContent");
       setCode(fileContent);
     }
   }, [fileContent]); // fileContent 변경 시마다 실행
@@ -130,7 +128,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
   useEffect(() => {
 
-    axios.post('http://localhost:9090/api/codeSync/checkWhoLocked', {
+    axios.post('http://116.121.53.142:9100/api/codeSync/checkWhoLocked', {
       fileNo,
       userNo,
       codeSyncNo,
@@ -153,12 +151,10 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
           setMessageStatus(message.status);
         }
       } catch (error) {
-        console.error('Failed to parse message:', error);
       } ;
 
 
     })
-    .catch((error) => console.error('잠금 상태 확인 실패:', error));
 
     
   }, [socket,message]);
@@ -180,8 +176,6 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
 
 
-  //console.log(code);
- 
   return (
     <>
       <GlobalStyle />
