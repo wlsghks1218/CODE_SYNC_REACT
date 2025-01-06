@@ -36,7 +36,7 @@ const CodeSyncMain = ({ data }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = new WebSocket(`ws://116.121.53.142:9100/codeSync.do?codeSyncNo=${codeSyncNo}`);
+    const newSocket = new WebSocket(`ws://localhost:9090/codeSync.do?codeSyncNo=${codeSyncNo}`);
     setSocket(newSocket);
 
     return () => {
@@ -85,7 +85,7 @@ const CodeSyncMain = ({ data }) => {
   socket={socket} 
   message={message} 
 />
-        <SidebarRight socket={socket} fileNo={fileNo} onSaveStatusChange={handleSaveStatusChange} onFileContentChange={handleFileContentChange}/> {/* 저장 상태 변경 함수 전달 */}
+        <SidebarRight socket={socket} fileNo={fileNo} onSaveStatusChange={handleSaveStatusChange} onFileContentChange={handleFileContentChange} data={data}/> {/* 저장 상태 변경 함수 전달 */}
       </ContentWrapper>
 
     </MainContainer>

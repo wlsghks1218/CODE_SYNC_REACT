@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
+import LiveChat from './LiveChat';
+import ViewHistory from './ViewHistory'; // ViewHistory 컴포넌트 추가
 
 const SidebarContainer = styled.div`
   width: 250px;
@@ -80,16 +82,60 @@ const Message = styled.div`
   box-shadow: none;
 `;
 
-const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }) => {
+const ChatWrapper = styled.div`
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 450px;  // 크기를 더 키움
+  background-color: #fff;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+  transform: translateX(${(props) => (props.isOpen ? '0' : '100%')});
+  transition: transform 0.3s ease-in-out;
+  z-index: 9999;
+`;
+
+const ChatHeader = styled.div`
+  background-color: #007bff;  // 색상 변경
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+`;
+
+const CloseButton = styled.button`
+  background-color: transparent;
+  color: white;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+
+  &:hover {
+    color: #ff3d3d;
+  }
+`;
+
+const LiveChatContent = styled.div`
+  height: calc(100% - 50px);  // ChatHeader를 제외한 나머지 영역
+  overflow-y: auto;
+  padding: 20px;
+`;
+
+const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange ,data }) => {
   const { codeSyncNo } = useParams();
   const user = useSelector((state) => state.user);
   const userNo = user.user.userNo;
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
+  const userId = user.user.userId;
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
   const [showMessage, setShowMessage] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false); // LiveChat 상태 추가
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // ViewHistory 상태 추가
 
   const handleInviteUser = () => {
-     console.log("자자 옵니다 옵니다")
+    console.log('자자 옵니다 옵니다');
   };
 
   const handleSaveCode = () => {
@@ -105,14 +151,13 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }
 
     if (content && fileNo) {
       axios
-        .post('http://localhost:9090/api/codeSync/saveCode', { fileNo, content })
+        .post('http://localhost:9090/api/codeSync/saveCode', { fileNo, content , codeSyncNo ,userId})
         .then((response) => {
-
           const unlockRequest = {
             code: '4',
             lockedBy: userNo,
             fileNo: fileNo,
-            codeSyncNo:codeSyncNo,
+            codeSyncNo: codeSyncNo,
           };
 
           if (socket && socket.readyState === WebSocket.OPEN) {
@@ -122,23 +167,22 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }
             console.log('WebSocket not open. Current readyState:', socket?.readyState);
           }
 
-          setMessage("수정이 완료되었습니다");
-          setMessageType("success");
+          setMessage('수정이 완료되었습니다');
+          setMessageType('success');
           setShowMessage(true);
           setTimeout(() => {
             setShowMessage(false);
           }, 3000);
 
-          // 저장 상태 변경
-          onSaveStatusChange(); // 부모 컴포넌트로 상태 변경 요청
+          onSaveStatusChange();
         })
         .catch((error) => {
           console.error('Error saving code:', error);
         });
     } else {
       console.log('No modified content or fileNo found.');
-      setMessage("수정사항이 없습니다");
-      setMessageType("error");
+      setMessage('수정사항이 없습니다');
+      setMessageType('error');
       setShowMessage(true);
       setTimeout(() => {
         setShowMessage(false);
@@ -146,13 +190,12 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }
     }
   };
 
-
   const handleRevertCode = () => {
-    const isConfirmed = window.confirm("코드를 초기 상태로 변경 하시겠습니까?");
+    const isConfirmed = window.confirm('코드를 초기 상태로 변경 하시겠습니까?');
     if (!isConfirmed) return;
-  
+
     let content = null;
-   
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.includes('_original')) {
@@ -165,18 +208,16 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }
       code: '4',
       lockedBy: userNo,
       fileNo: fileNo,
-      codeSyncNo:codeSyncNo,
+      codeSyncNo: codeSyncNo,
     };
-    
+
     if (socket && socket.readyState === WebSocket.OPEN) {
       console.log('Sending unlock request via WebSocket:', unlockRequest);
       socket.send(JSON.stringify(unlockRequest));
     } else {
       console.log('WebSocket not open. Current readyState:', socket?.readyState);
     }
-    onSaveStatusChange(); // 부모 컴포넌트로 상태 변경 요청
-
-    //console.log(content);
+    onSaveStatusChange();
 
     onFileContentChange({
       content: content,
@@ -184,21 +225,47 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange,onFileContentChange }
     });
   };
 
+  const openChat = () => {
+    setIsChatOpen(!isChatOpen); // 채팅 창 열고 닫기 상태 토글
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false); // 닫기 버튼 클릭 시 채팅 창 닫기
+  };
+  const openHistory = () => {
+    setIsHistoryOpen(true);
+  };
+
+  const closeHistory = () => {
+    setIsHistoryOpen(false);
+  };
   return (
-    <SidebarContainer>
-      <ButtonGroup>
-        <Button onClick={handleInviteUser}>Share / Users </Button>
-        <Button>Open Chat</Button>
-        <Button>View History</Button>
-      </ButtonGroup>
+    <>
+      <ChatWrapper isOpen={isChatOpen}>
+        <ChatHeader>
+          <span>Live Chat</span>
+          <CloseButton onClick={closeChat}>×</CloseButton>
+        </ChatHeader>
+        <LiveChatContent>
+          <LiveChat data={data}/>
+        </LiveChatContent>
+      </ChatWrapper>
+      <ViewHistory isOpen={isHistoryOpen} onClose={closeHistory} />
+      <SidebarContainer>
+        <ButtonGroup>
+          <Button onClick={handleInviteUser}>Share / Users</Button>
+          <Button onClick={openChat}>Open Chat</Button>
+          <Button onClick={openHistory}>View History</Button>
+        </ButtonGroup>
 
-      {showMessage && <Message show={showMessage} type={messageType}>{message}</Message>}
+        {showMessage && <Message show={showMessage} type={messageType}>{message}</Message>}
 
-      <BottomButtons>
-        <SaveButton onClick={handleSaveCode}>Save Code</SaveButton>
-        <RevertButton onClick={handleRevertCode}>Revert Code</RevertButton>
-      </BottomButtons>
-    </SidebarContainer>
+        <BottomButtons>
+          <SaveButton onClick={handleSaveCode}>Save Code</SaveButton>
+          <RevertButton onClick={handleRevertCode}>Revert Code</RevertButton>
+        </BottomButtons>
+      </SidebarContainer>
+    </>
   );
 };
 

@@ -101,7 +101,6 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
 
   useEffect(() => {
-    console.log("fileContent:", fileContent);
     if (fileContent && fileContent !== code) {
       console.log("Updating code with fileContent");
       setCode(fileContent);
@@ -140,7 +139,6 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
       const { isLocked } = response.data;
       setIsReadOnly(!isLocked);
 
-      console.log("받은 리스폰스" , response.data.isLocked);
 
       try {
         const lockStatus = response.data.isLocked;

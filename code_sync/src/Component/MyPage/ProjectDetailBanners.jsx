@@ -436,6 +436,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
                     onClick={() => {
                       setTemporaryLink(portfolioLink); // 기존 상태 복원
                       setIsEditingPortfolio(false); // 수정 모드 종료
+                      setShowPortfolioModal(false);
                     }}
                   >
                     취소

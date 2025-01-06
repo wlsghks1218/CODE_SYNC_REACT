@@ -365,9 +365,13 @@ const Docs = () => {
           return updatedEditable;
         });
   
+        alert("컬럼 저장 성공");
+      } else {
+        alert("컬럼 번호를 가져오지 못했습니다.");
       }
     } catch (error) {
       console.error("컬럼 저장 실패:", error);
+      alert("컬럼 저장 실패");
     }
   };
 
@@ -512,6 +516,7 @@ const Docs = () => {
       });
   
       if (response.status === 200) {
+        alert("컬럼이 삭제되었습니다.");
         
   
         // 컬럼 상태 초기화

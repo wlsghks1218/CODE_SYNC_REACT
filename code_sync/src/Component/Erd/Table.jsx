@@ -14,6 +14,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   const [editingFieldIndex, setEditingFieldIndex] = useState(null);
   const [tableFields, setTableFields] = useState([]);
   const [isConnectionInProgress, setIsConnectionInProgress] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [position, setPosition] = useState(table.position || { x: 0, y: 0 });
 
@@ -58,8 +59,13 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   }, [id]);
 
   useEffect(() => {
-    fetchTableFields();
-  }, [id, tableFields]);
+    if (isUpdating) {
+
+      return;
+    }
+    const interval = setInterval(fetchTableFields, 1000);
+    return () => clearInterval(interval); 
+  }, [isUpdating, fetchTableFields]);
 
   // 제목 변경
   const handleTitleChange = () => setIsEditingTitle(true);
@@ -70,6 +76,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
   // 필드 추가
   const handleAddField = (isPrimary = false) => {
+    setIsUpdating(true);
     if (isPrimary && tableFields.some((field) => field.isPrimary)) {
       return;
     }
@@ -90,7 +97,8 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
       { ...table, fields: updatedFields },
       "add",
       newField.fieldId
-    );
+    )
+    setIsUpdating(false);
   };
 
   // 필드 변경
@@ -103,6 +111,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
   // 필드 삭제
   const handleDeleteField = (fieldIndex) => {
+    setIsUpdating(true);
     const deletedField = tableFields[fieldIndex];
 
     if (deletedField.isPrimary) {
@@ -123,7 +132,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
     const updatedFields = tableFields.filter((_, index) => index !== fieldIndex);
     setTableFields(updatedFields);
-
+    setIsUpdating(false);
   };
 
   const handleFieldEdit = (fieldType, index) => {
@@ -133,6 +142,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
   // 필드 저장
   const handleFieldSave = () => {
+    setIsUpdating(true);
     if (editingFieldIndex === null) return;
 
     const updatedTable = {
@@ -150,6 +160,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
     setEditingField(null);
     setEditingFieldIndex(null);
+    setIsUpdating(false);
   };
 
   const handleConnection = (e, position) => {
@@ -252,6 +263,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
                         key={`${field.fieldId || index}-${fieldType}`}
                         onClick={() => handleFieldEdit(fieldType, index)}
                         isPrimary={field.isPrimary}
+                        isForeign={field.isForeign}
                       >
                         {editingField === fieldType && editingFieldIndex === index ? (
                           <FieldInput
@@ -324,7 +336,7 @@ const LeftPoint = styled(ConnectionPoint)`
 const TableWrapper = styled.div`
 
   position: absolute;
-  width: 300px; /* 크기 줄임 */
+  width: 400px; /* 크기 줄임 */
   background-color: #f9f9f9;
   border: 1px solid #ccc;
   padding: 10px; /* padding 줄임 */
@@ -420,7 +432,7 @@ const TableFields = styled.table`
   }
   td:nth-child(2),
   th:nth-child(2) {
-    width: 35%; /* 폭 더 줄임 */
+    width: 30%; /* 폭 더 줄임 */
   }
   td:nth-child(3),
   th:nth-child(3) {
@@ -428,7 +440,7 @@ const TableFields = styled.table`
   }
   td:nth-child(4),
   th:nth-child(4) {
-    width: 15%; /* 폭 더 줄임 */
+    width: 20%; /* 폭 더 줄임 */
   }
 `;
 
@@ -462,6 +474,6 @@ const TableCell = styled.td`
   text-align: center;
   &:hover {
     background-color: ${({ isPrimary, isForeign }) =>
-    isPrimary ? "#ffeeba" : isForeign ? "#87ceeb" : "#f1f1f1"}; /* 강조된 색 */
+      isPrimary ? "#ffeeba" : isForeign ? "#87ceeb" : "#f1f1f1"}; /* 강조된 색 */
   }
 `;

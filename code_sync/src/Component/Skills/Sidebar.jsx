@@ -82,32 +82,13 @@ const RemoveButton = styled.button`
     }
 `;
 
-const AlertMessage = styled.div`
-    margin-top: 10px;
-    padding: 8px;
-    background-color: #ffcccc;
-    color: #d8000c;
-    border: 1px solid #d8000c;
-    border-radius: 4px;
-    font-size: 14px;
-`;
-
 const Sidebar = ({ isMaster, skills, onAddSkill, onRemoveSkill, onDropSkill }) => {
     const [newSkill, setNewSkill] = useState('');
     const [imageUrl, setImageUrl] = useState('');
-    const [alertMessage, setAlertMessage] = useState('');
-
-    const showAlert = (message) => {
-        setAlertMessage(message);
-        setTimeout(() => setAlertMessage(''), 3000); // 3초 후 메시지 제거
-    };
 
     // 드래그 시작 이벤트
     const handleDragStart = (e, skill) => {
-        if (!isMaster) {
-            showAlert('프로젝트 마스터만 이동이 가능합니다.');
-            return;
-        }
+        if (!isMaster) return;
         e.dataTransfer.setData('skillName', skill.skillName);
         e.dataTransfer.setData('imageUrl', skill.imageUrl);
         e.dataTransfer.setData('sourceCategory', 'sidebar');
@@ -115,16 +96,13 @@ const Sidebar = ({ isMaster, skills, onAddSkill, onRemoveSkill, onDropSkill }) =
 
     // 드롭 이벤트 처리
     const handleDrop = (e) => {
-        if (!isMaster) {
-            showAlert('프로젝트 마스터만 드롭 기능을 사용할 수 있습니다.');
-            return;
-        }
+        if (!isMaster) return;
         e.preventDefault();
-
+    
         const skillName = e.dataTransfer.getData('skillName');
         const imageUrl = e.dataTransfer.getData('imageUrl');
         const sourceCategory = e.dataTransfer.getData('sourceCategory');
-
+    
         if (sourceCategory !== 'sidebar') {
             onDropSkill(skillName, 'sidebar', sourceCategory, imageUrl);
         }
@@ -134,11 +112,7 @@ const Sidebar = ({ isMaster, skills, onAddSkill, onRemoveSkill, onDropSkill }) =
 
     // 스킬 추가
     const handleAddSkill = () => {
-        if (!isMaster) {
-            showAlert('프로젝트 마스터만 스킬을 추가할 수 있습니다.');
-            return;
-        }
-        if (!newSkill.trim()) return;
+        if (!isMaster || !newSkill.trim()) return;
         onAddSkill(newSkill, imageUrl);
         setNewSkill('');
         setImageUrl('');
@@ -182,7 +156,6 @@ const Sidebar = ({ isMaster, skills, onAddSkill, onRemoveSkill, onDropSkill }) =
                     </SkillItem>
                 ))}
             </SkillsList>
-            {alertMessage && <AlertMessage>{alertMessage}</AlertMessage>}
         </SidebarContainer>
     );
 };

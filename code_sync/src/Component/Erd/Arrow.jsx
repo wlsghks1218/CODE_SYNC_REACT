@@ -1,27 +1,24 @@
-import React from 'react';
+ import React from 'react';
 
 const Arrow = ({ startPosition, endPosition }) => {
-  const startX = startPosition.x - 222; // 시작 X 좌표
-  const startY = startPosition.y - 22; // 시작 Y 좌표
-  const endX = endPosition.x - 222;   // 끝 X 좌표
-  const endY = endPosition.y - 23;    // 끝 Y 좌표
+  const startX = startPosition.x + 155;
+  const startY = startPosition.y + 50;
+  const endX = endPosition.x + 155;
+  const endY = endPosition.y + 50;
 
-  // 직선 경로 정의: 시작점 -> 끝점
-  const pathData = `M ${startX} ${startY} L ${endX} ${endY}`;
+  // 꺾이는 지점 계산 (X축 중심에 따라 설정)
+  const bendX = (startX + endX) / 2; 
 
-  // 화살촉 좌표를 끝 점 기준으로 조금 더 크고 깔끔하게 설정
-  const arrowHeadSize = 10; // 화살촉 크기
-  const angle = Math.atan2(endY - startY, endX - startX);
-  const arrowHeadLeftX = endX - arrowHeadSize * Math.cos(angle - Math.PI / 6);
-  const arrowHeadLeftY = endY - arrowHeadSize * Math.sin(angle - Math.PI / 6);
-  const arrowHeadRightX = endX - arrowHeadSize * Math.cos(angle + Math.PI / 6);
-  const arrowHeadRightY = endY - arrowHeadSize * Math.sin(angle + Math.PI / 6);
+  // 경로 정의: 시작 -> 꺾이는 지점 -> 끝점
+  const pathData = `M ${startX} ${startY} L ${bendX} ${startY} L ${bendX} ${endY} L ${endX} ${endY}`;
 
   return (
     <svg style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}>
+      {/* 화살표 경로 */}
       <path d={pathData} stroke="purple" strokeWidth="2" fill="none" />
+      {/* 화살표 머리 */}
       <polygon
-        points={`${endX},${endY} ${arrowHeadLeftX},${arrowHeadLeftY} ${arrowHeadRightX},${arrowHeadRightY}`}
+        points={`${endX},${endY} ${endX - 8},${endY - 5} ${endX - 8},${endY + 5}`}
         fill="purple"
       />
     </svg>
