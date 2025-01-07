@@ -163,7 +163,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
       setPortfolioLink(temporaryLink);
       setShowPortfolioModal(false);
       
-      const updatedProject = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
+      const updatedProject = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
         params: { projectNo },
       });
       setProject(updatedProject.data); // 프로젝트 정보 갱신
@@ -178,7 +178,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
-        const projectInfo = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
+        const projectInfo = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
           params: { projectNo: projectNo }
         })
 
@@ -187,9 +187,9 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
         setPortfolioLink(projectInfo.data.portfolioLink || "");
 
         const responses = await Promise.all([
-          axios.get("http://116.121.53.142:9100/project/checkErd", { params: { projectNo } }),
-          axios.get("http://116.121.53.142:9100/project/checkCode", { params: { projectNo } }),
-          axios.get("http://116.121.53.142:9100/project/checkDocs", { params: { projectNo } }),
+          axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
+          axios.get("http://localhost:9090/project/checkCode", { params: { projectNo } }),
+          axios.get("http://localhost:9090/project/checkDocs", { params: { projectNo } }),
         ]);
         setRoutes({
           erdNo: responses[0].data.erdNo,
@@ -227,7 +227,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     // eslint-disable-next-line no-restricted-globals
     if (confirm("프로젝트 진짜 지울거에요?")) {
       try {
-        const response = await axios.get(`http://116.121.53.142:9100/project/deleteProject`, {
+        const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
           params: { projectNo },
         });
         if (response.data.success) {
@@ -253,7 +253,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const handleUpdateProject = async () => {
     try {
       const response = await axios.post(
-        "http://116.121.53.142:9100/project/updateProject",
+        "http://localhost:9090/project/updateProject",
         { ...editedProject }
       );
       if (response.data > 0) {

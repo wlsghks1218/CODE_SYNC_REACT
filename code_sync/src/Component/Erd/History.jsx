@@ -41,7 +41,6 @@ const History = ({ history }) => (
         <HistoryMessage key={index}>
           {entry.action}
           <TimeStamp>
-            {/* Date 객체를 문자열로 변환 */}
             {new Date(entry.erdUpdateDate).toLocaleString()}
           </TimeStamp>
         </HistoryMessage>

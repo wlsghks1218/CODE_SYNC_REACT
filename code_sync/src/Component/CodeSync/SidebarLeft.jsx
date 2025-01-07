@@ -160,7 +160,7 @@ const [menuItem , setMenuItem] = useState("");
   const fetchFolderStructureFromDB = async (codeSyncNo) => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+      const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {
@@ -327,7 +327,7 @@ const [menuItem , setMenuItem] = useState("");
 
       const folderStructure = { folders, files };
 
-      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/uploadFolder', folderStructure, {
+      const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -408,7 +408,7 @@ const [menuItem , setMenuItem] = useState("");
 
     try {
       // 1. 파일 번호를 가져오기 위해 서버에 요청
-      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
+      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
         folderNo: file.folderNo,
         fileName: file.name,
       });
@@ -418,7 +418,7 @@ const [menuItem , setMenuItem] = useState("");
       
 
         // 2. 파일 잠금 상태 확인을 위한 요청
-        const lockResponse = await axios.post('http://116.121.53.142:9100/api/codeSync/checkFileLockStatus', {
+        const lockResponse = await axios.post('http://localhost:9090/api/codeSync/checkFileLockStatus', {
           fileNo: fileNo,
           userNo: userNo
         });
@@ -453,7 +453,7 @@ const [menuItem , setMenuItem] = useState("");
 
 
   const handleFileClick= async (file) => {
-    const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
+    const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
       folderNo: file.folderNo,
       fileName: file.name,
     });

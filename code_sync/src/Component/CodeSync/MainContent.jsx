@@ -86,7 +86,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
   const { codeSyncNo } = useParams();
 
   useEffect(() => { 
-      axios.post('http://116.121.53.142:9100/api/codeSync/checkLocked', {
+      axios.post('http://localhost:9090/api/codeSync/checkLocked', {
         fileNo,
         userNo,
         codeSyncNo,
@@ -128,7 +128,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
   useEffect(() => {
 
-    axios.post('http://116.121.53.142:9100/api/codeSync/checkWhoLocked', {
+    axios.post('http://localhost:9090/api/codeSync/checkWhoLocked', {
       fileNo,
       userNo,
       codeSyncNo,

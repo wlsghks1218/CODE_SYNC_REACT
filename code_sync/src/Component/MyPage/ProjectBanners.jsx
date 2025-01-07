@@ -176,7 +176,7 @@ const ProjectBanners = ({ projects, setSelectedProjectNo, fetchProjects }) => {
             return;
         }
         try {
-            await axios.post('http://116.121.53.142:9100/project/createProject', projectInfo, {
+            await axios.post('http://localhost:9090/project/createProject', projectInfo, {
                 headers: {
                     'Content-Type': 'application/json',
                 },

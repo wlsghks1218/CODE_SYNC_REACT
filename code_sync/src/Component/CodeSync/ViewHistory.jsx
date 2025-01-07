@@ -86,7 +86,7 @@ const ViewHistory = ({ isOpen, onClose }) => {
       setError(null);
   
       try {
-        const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/history/${codeSyncNo}`);
+        const response = await axios.get(`http://localhost:9090/api/codeSync/history/${codeSyncNo}`);
         setHistoryData(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setError('히스토리를 가져오는 중 문제가 발생했습니다.');

@@ -25,13 +25,13 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   }, [table.position]);
 
   useEffect(() => {
+    console.log("isAddingArrow changed:", isAddingArrow); 
   }, [isAddingArrow]);
 
   // 필드 데이터 불러오기
   const fetchTableFields = useCallback(async () => {
-    
     try {
-      const response = await axios.get(`http://116.121.53.142:9100/erd/tableFields?id=${id}`);
+      const response = await axios.get(`http://localhost:9090/erd/tableFields?id=${id}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTableFields = response.data.map((item) => ({
           erdTableNo: item.erdTableNo,
@@ -54,17 +54,18 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
         setTableFields(sortedFields);
       }
     } catch (error) {
+      console.error("Error fetching table fields:", error);
     }
   }, [id]);
 
   useEffect(() => {
-    if (isUpdating) {
-
+    if (isUpdating || editingField !== null) {
       return;
     }
-    const interval = setInterval(fetchTableFields, 10000);
-    return () => clearInterval(interval); 
-  }, [isUpdating, fetchTableFields]);
+    const interval = setInterval(fetchTableFields, 1000);
+    return () => clearInterval(interval);
+  }, [isUpdating, fetchTableFields, editingField]);
+  
 
   // 제목 변경
   const handleTitleChange = () => setIsEditingTitle(true);
@@ -77,7 +78,6 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   const handleAddField = (isPrimary = false) => {
     setIsUpdating(true);
     if (isPrimary && tableFields.some((field) => field.isPrimary)) {
-      setIsUpdating(false);
       return;
     }
 
@@ -103,10 +103,12 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
   // 필드 변경
   const handleFieldChange = (fieldIndex, fieldType, value) => {
+    setIsUpdating(true);
     const updatedFields = tableFields.map((field, index) =>
       index === fieldIndex ? { ...field, [fieldType]: value } : field
     );
     setTableFields(updatedFields);
+    setIsUpdating(false);
   };
 
   // 필드 삭제

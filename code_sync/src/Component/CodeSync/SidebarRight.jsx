@@ -150,7 +150,7 @@ const SidebarRight = ({ socket, fileNo, onSaveStatusChange, onFileContentChange 
 
     if (content && fileNo) {
       axios
-        .post('http://116.121.53.142:9100/api/codeSync/saveCode', { fileNo, content , codeSyncNo ,userId})
+        .post('http://localhost:9090/api/codeSync/saveCode', { fileNo, content , codeSyncNo ,userId})
         .then((response) => {
           const unlockRequest = {
             code: '4',

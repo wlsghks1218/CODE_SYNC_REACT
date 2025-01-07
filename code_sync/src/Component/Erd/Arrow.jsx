@@ -1,4 +1,4 @@
- import React from 'react';
+import React from 'react';
 
 const Arrow = ({ startPosition, endPosition }) => {
   const startX = startPosition.x + 155;

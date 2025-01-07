@@ -59,7 +59,7 @@ const Display = () => {
 
   const fetchProjects = async (userNo) => {
     try {
-      const response = await axios.get(`http://116.121.53.142:9100/project/getProjectList?userNo=${userNo}`);
+      const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${userNo}`);
       setProjects(response.data);
     } catch (error) {
     }

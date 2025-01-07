@@ -59,8 +59,8 @@ const Content = ({ selectedTab }) => {
             try {
                 const endpoint =
                     selectedTab === 'projectManagement'
-                        ? 'http://116.121.53.142:9100/admin/getProjectList'
-                        : 'http://116.121.53.142:9100/admin/getUserList';
+                        ? 'http://localhost:9090/admin/getProjectList'
+                        : 'http://localhost:9090/admin/getUserList';
                 const response = await axios.get(endpoint);
                 setList(response.data);
             } catch (error) {

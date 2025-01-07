@@ -7,7 +7,6 @@ import styled from "styled-components";
 
 const CalendarWrapper = styled.div`
     display: flex;
-    justify-content: center;
     align-items: center;
     height: 100vh;
     flex-direction: column;
@@ -27,12 +26,13 @@ const StyledCalendar = styled(Calendar)`
     }
 
     .react-calendar__tile--now {
-        background-color:white;
+        background-color:white !important;
     }
     .react-calendar__tile--active {
-        color: black;
+      color: black;
+      background-color: transparent !important;
     }
-
+      
     .react-calendar__tile {
         display: flex;
         flex-direction: column; /* 세로 방향 정렬 */
@@ -63,10 +63,6 @@ const StyledCalendar = styled(Calendar)`
         position: relative;
     }
 
-    .tile-part.active {
-        background-color: inherit;
-    }
-        ]
     .tile-part.code.active {
         background-color: red;
     }
@@ -118,7 +114,7 @@ function ProjectHistory() {
   useEffect(() => {
     const fetchHistories = async () => {
         try {
-          const docsResponse = await axios.get("http://116.121.53.142:9100/gantt/getDocsHistoryForGantt", {
+          const docsResponse = await axios.get("http://localhost:9090/gantt/getDocsHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -128,11 +124,11 @@ function ProjectHistory() {
               updateDate: new Date(doc.updateDate),
             }))
           );
-          const codeResponse = await axios.get("http://116.121.53.142:9100/gantt/getCodeHistoryForGantt", {
+          const codeResponse = await axios.get("http://localhost:9090/gantt/getCodeHistoryForGantt", {
             params: { projectNo },
           });
           
-          const erdResponse = await axios.get("http://116.121.53.142:9100/gantt/getErdHistoryForGantt", {
+          const erdResponse = await axios.get("http://localhost:9090/gantt/getErdHistoryForGantt", {
             params: { projectNo },
           });
       
