@@ -100,6 +100,30 @@ const StyledCalendar = styled(Calendar)`
     }
 `;
 
+const LegendWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 가로 가운데 정렬 */
+  margin-bottom: 16px; /* 아래 캘린더와의 간격 */
+`;
+
+// 색상 박스
+const ColorBox = styled.div`
+  width: 16px;
+  height: 16px;
+  background-color: ${(props) => props.color || "gray"};
+  border: 1px solid #ccc;
+  margin-right: 8px;
+  border-radius: 4px;
+`;
+
+// 텍스트 스타일
+const LegendText = styled.span`
+  font-size: 14px;
+  color: #333;
+  margin-right: 16px; /* 박스 간 간격 */
+`;
+
 function ProjectHistory() {
   const [date, setDate] = useState(new Date());
   const [docsHistory, setDocsHistory] = useState([]);
@@ -114,7 +138,7 @@ function ProjectHistory() {
   useEffect(() => {
     const fetchHistories = async () => {
         try {
-          const docsResponse = await axios.get("http://localhost:9090/gantt/getDocsHistoryForGantt", {
+          const docsResponse = await axios.get("http://116.121.53.142:9100/gantt/getDocsHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -124,11 +148,11 @@ function ProjectHistory() {
               updateDate: new Date(doc.updateDate),
             }))
           );
-          const codeResponse = await axios.get("http://localhost:9090/gantt/getCodeHistoryForGantt", {
+          const codeResponse = await axios.get("http://116.121.53.142:9100/gantt/getCodeHistoryForGantt", {
             params: { projectNo },
           });
           
-          const erdResponse = await axios.get("http://localhost:9090/gantt/getErdHistoryForGantt", {
+          const erdResponse = await axios.get("http://116.121.53.142:9100/gantt/getErdHistoryForGantt", {
             params: { projectNo },
           });
       
@@ -214,6 +238,14 @@ function ProjectHistory() {
 
   return (
     <CalendarWrapper>
+      <LegendWrapper>
+        <ColorBox color="red" />
+        <LegendText>Code</LegendText>
+        <ColorBox color="orange" />
+        <LegendText>ERD</LegendText>
+        <ColorBox color="yellow" />
+        <LegendText>DOCS</LegendText>
+      </LegendWrapper>
       <StyledCalendar
         onChange={handleChange}
         value={date}

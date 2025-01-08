@@ -7,6 +7,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { toast } from "react-toastify";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { useSelector } from 'react-redux';
 const SidebarContainer = styled.div`
   width: ${(props) => props.width}px;
   background-color: #f4f4f4;
@@ -87,7 +88,8 @@ const SidebarLeft = ({ onFileContentChange, data, socket, isSaved,message}) => {
 const [newName, setNewName] = useState("");  // 새 이름
 const [nameEditPosition, setNameEditPosition] = useState({ x: 0, y: 0 });  // 입력창 위치
 const [menuItem , setMenuItem] = useState("");
-  
+const user = useSelector((state) => state.user);
+const userId = user.user.userId;
   const userNo = data.user.userNo;
   useEffect(() => {
     if (menuItem === "Create file" || menuItem === "Create folder") {
@@ -109,7 +111,6 @@ const [menuItem , setMenuItem] = useState("");
           const filePath = message.file?.filePath; // filePath가 없을 수 있으니 안전하게 접근
           const locked = message.status === "update" ? message.file?.lockedBy !== 0 : false; // 잠금 상태 확인
   
-    
           // 상태 업데이트
           setLockStatusMap((prevState) => {
             const newMap = new Map(prevState);
@@ -159,8 +160,22 @@ const [menuItem , setMenuItem] = useState("");
 
   const fetchFolderStructureFromDB = async (codeSyncNo) => {
     setIsLoading(true);
+    
     try {
-      const response = await axios.get(`http://localhost:9090/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+      // 1. 먼저 폴더가 있는지 확인하는 요청을 보냄
+      const checkResponse = await axios.get(`http://116.121.53.142:9100/api/codeSync/checkFolderExistence?codeSyncNo=${codeSyncNo}`);
+  
+      // checkResponse.data가 0이면 폴더가 없다는 의미
+      if (checkResponse.status === 200 && checkResponse.data === 0) {
+        // 폴더가 없다면 더 이상 진행하지 않고 종료
+        setNoDataFound(true);
+        setFolderTree(null);
+        return;
+      }
+  
+      // 2. 폴더가 존재하면, 실제 폴더 구조를 가져오는 요청을 보냄
+      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
+  
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {
@@ -174,12 +189,14 @@ const [menuItem , setMenuItem] = useState("");
       } else {
         toast.error('Failed to fetch folder structure from database');
       }
+  
     } catch (error) {
-      setNoDataFound(true);
+      toast.error('An error occurred while fetching the folder structure');
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const buildFolderStructureFromResponse = (data) => {
     const folderMap = new Map();
@@ -327,7 +344,7 @@ const [menuItem , setMenuItem] = useState("");
 
       const folderStructure = { folders, files };
 
-      const response = await axios.post('http://localhost:9090/api/codeSync/uploadFolder', folderStructure, {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/uploadFolder', folderStructure, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -388,7 +405,6 @@ const [menuItem , setMenuItem] = useState("");
         }
       });
     });
-
     return root;
   };
 
@@ -408,7 +424,7 @@ const [menuItem , setMenuItem] = useState("");
 
     try {
       // 1. 파일 번호를 가져오기 위해 서버에 요청
-      const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+      const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
         folderNo: file.folderNo,
         fileName: file.name,
       });
@@ -418,7 +434,7 @@ const [menuItem , setMenuItem] = useState("");
       
 
         // 2. 파일 잠금 상태 확인을 위한 요청
-        const lockResponse = await axios.post('http://localhost:9090/api/codeSync/checkFileLockStatus', {
+        const lockResponse = await axios.post('http://116.121.53.142:9100/api/codeSync/checkFileLockStatus', {
           fileNo: fileNo,
           userNo: userNo
         });
@@ -453,7 +469,7 @@ const [menuItem , setMenuItem] = useState("");
 
 
   const handleFileClick= async (file) => {
-    const response = await axios.post('http://localhost:9090/api/codeSync/getFileNo', {
+    const response = await axios.post('http://116.121.53.142:9100/api/codeSync/getFileNo', {
       folderNo: file.folderNo,
       fileName: file.name,
     });
@@ -472,34 +488,53 @@ const [menuItem , setMenuItem] = useState("");
     e.preventDefault();
     e.stopPropagation();
     
-    setSelectedItem(item);  // 우클릭한 항목을 selectedItem에 설정
+    setSelectedItem(item); // 우클릭한 항목을 selectedItem에 설정
     
-    const menuItems = item.type === 'folder' ? ['Delete Folder', 'Rename', 'Create file','Create folder', 'Copy', 'Paste'] : ['Delete File', 'Rename', 'Copy'];
-    
-    let adjustedX = e.clientX;
-    let adjustedY = e.clientY;
+    // 메뉴 항목 설정
+    const menuItems = item.type === 'folder' 
+      ? ['Delete Folder', 'Rename', 'Create file', 'Create folder', 'Copy', 'Paste'] 
+      : ['Delete File', 'Rename', 'Copy'];
+  
+    // 화면 크기 가져오기
     const maxWidth = window.innerWidth;
     const maxHeight = window.innerHeight;
-    
+  
+    // 기본 좌표값 설정
+    let adjustedX = e.clientX;
+    let adjustedY = e.clientY;
+  
+    // 폴더와 파일에 따라 메뉴 위치 조정
+    if (item.type === 'folder') {
+      adjustedX += 5; // 폴더는 오른쪽으로 더 배치
+      adjustedY -= 10 * menuItems.length; // 폴더는 위로 배치
+    } else {
+      adjustedX -= 0; // 파일은 왼쪽으로 약간 이동
+      adjustedY += -55; // 파일은 아래로 약간 이동
+    }
+  
+    // 화면 밖으로 넘어가지 않도록 위치 제한
     if (adjustedX + 150 > maxWidth) {
       adjustedX = maxWidth - 150;
     }
     if (adjustedX < 0) {
       adjustedX = 0;
     }
-    if (adjustedY - 10 * menuItems.length < 0) {
+    if (adjustedY + 10 * menuItems.length > maxHeight) {
+      adjustedY = maxHeight - 10 * menuItems.length;
+    }
+    if (adjustedY < 0) {
       adjustedY = 0;
-    } else {
-      adjustedY -= 10 * menuItems.length;
     }
   
+    // 상태 업데이트
     setContextMenu({ x: adjustedX, y: adjustedY });
     setContextMenuItems(menuItems);
   
-    // 이름 수정 모드 활성화 시 입력창 위치 설정
+    // 이름 수정 모드 초기화 및 위치 설정
     setNameEditPosition({ x: adjustedX, y: adjustedY });
-    setEditingName(false);  // 수정 모드 초기화
+    setEditingName(false);
   };
+  
   
   const handleContextMenuItemClick = (item) => {
 
@@ -521,12 +556,7 @@ const [menuItem , setMenuItem] = useState("");
                 toast.error("Root 폴더는 삭제가 불가합니다");
                 return;
             }
-        
-            const isConfirmed = window.confirm(`"${selectedItem.name}" 폴더를 삭제하시겠습니까?`);
-            if (!isConfirmed) {
-                toast.info("폴더 삭제가 취소되었습니다.");
-                return;
-            }
+   
         
             const deleteMessage = {
                 code: "8",
@@ -534,12 +564,26 @@ const [menuItem , setMenuItem] = useState("");
                 folderNo: selectedItem.folderNo,
             };
         
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(deleteMessage));
-                toast.success(`${selectedItem.name} 폴더가 삭제되었습니다.`);
-            } else {
-                toast.error("WebSocket is not connected.");
-            }
+            // 사용자에게 삭제 확인
+if (window.confirm(`${selectedItem.name} 폴더를 삭제하시겠습니까?`)) {
+  axios
+    .post('http://116.121.53.142:9100/api/codeSync/insertDeleteFolderHistory', {
+      folderName: selectedItem.name,
+      codeSyncNo,
+      userId,
+    })
+    .then((response) => {
+      socket.send(JSON.stringify(deleteMessage));
+      toast.success(`${selectedItem.name} folder deleted`);
+    })
+    .catch((error) => {
+      // 오류 처리
+    });
+} else {
+  // 취소했을 경우
+  toast.info("폴더 삭제가 취소되었습니다.");
+}
+
         
             break;
         
@@ -554,6 +598,7 @@ const [menuItem , setMenuItem] = useState("");
 
             case 'Copy':
             setCopyItem(selectedItem);
+            toast.success(`${selectedItem.name} 복사 `)
             
             break;
            
@@ -562,7 +607,6 @@ const [menuItem , setMenuItem] = useState("");
                 toast.error("동일한 폴더에 붙여넣기를 할 수 없습니다");
                 return;
               } 
-
             if (copyItem.type === "folder") {
               const folderPath = selectedItem.path + "/" + copyItem.name;
        
@@ -578,10 +622,19 @@ const [menuItem , setMenuItem] = useState("");
                 type : copyItem.type,
                 userNo : userNo,
               };
+              const newName = selectedItem.name;
+              const folderName = copyItem.name;
             
               if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(pasteFolderMessage));  
-                toast.success(`붙여넣기가 완료되었습니다`);
+                axios
+                .post('http://116.121.53.142:9100/api/codeSync/insertPasteFolderHistory', {  folderName,newName , codeSyncNo, userId })
+                .then((response) => {
+                  socket.send(JSON.stringify(pasteFolderMessage));  
+       
+                  toast.success(`${folderName} 폴더를 ${newName} 폴더에 붙여넣기 하였습니다`);
+                  })
+                  .catch((error) => {
+                  });
               } else {
                 toast.error("WebSocket is not connected.");
               }
@@ -600,33 +653,49 @@ const [menuItem , setMenuItem] = useState("");
               type : copyItem.type,
 
             };
+            const fileName = copyItem.name;
+            const newName = selectedItem.name;
           
             if (socket && socket.readyState === WebSocket.OPEN) {
-              socket.send(JSON.stringify(pasteFileMessage));  
-              toast.success(`붙여넣기가 완료되었습니다`);
+              axios
+              .post('http://116.121.53.142:9100/api/codeSync/insertPasteFileHistory', {  fileName,newName , codeSyncNo, userId })
+              .then((response) => {
+                socket.send(JSON.stringify(pasteFileMessage));  
+     
+                toast.success(`${fileName} 파일을 ${newName} 폴더에 붙여넣기 하였습니다`);
+                })
+                .catch((error) => {
+                });
             } else {
               toast.error("WebSocket is not connected.");
             }
-            } 
+          }
 
             setCopyItem(null);
             
             break;
             case 'Delete File':
               const deleteFileMessage = {
-                code: "12",
-                codeSyncNo: codeSyncNo,
-                folderNo: selectedItem.folderNo,
-                fileName : selectedItem.name,
-            };
-        
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(deleteFileMessage));
-                toast.success(`${selectedItem.name} 파일이 삭제되었습니다.`);
-            } else {
+                  code: "12",
+                  codeSyncNo: codeSyncNo,
+                  folderNo: selectedItem.folderNo,
+                  fileName: selectedItem.name,
+              };
+              const fileName = selectedItem.name;
+          
+              // 사용자에게 삭제 확인
+              if (window.confirm(`${selectedItem.name} 파일을 삭제하시겠습니까?`)) {
+                axios
+                .post('http://116.121.53.142:9100/api/codeSync/insertDeleteFileHistory', {  fileName , codeSyncNo, userId })
+                .then((response) => {
+                  socket.send(JSON.stringify(deleteFileMessage));
+                  toast.success(`${newName} file delete`);
+                  })
+                  .catch((error) => {
+                  });
+              } else {
                 toast.error("WebSocket is not connected.");
-            }
-
+              }
               break;
            
       default:
@@ -644,10 +713,18 @@ const [menuItem , setMenuItem] = useState("");
         folderName: selectedItem.name,  
         newName: newName.trim(), 
       };
+      const folderName = selectedItem.name;
     
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(renameMessage));  
-        toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+        axios
+        .post('http://116.121.53.142:9100/api/codeSync/insertRenameFolderHistory', {  folderName,newName, codeSyncNo, userId })
+        .then((response) => {
+          socket.send(JSON.stringify(renameMessage));  
+
+          toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+          })
+          .catch((error) => {
+          });
       } else {
         toast.error("WebSocket is not connected.");
       }
@@ -664,10 +741,17 @@ const [menuItem , setMenuItem] = useState("");
       fileName: selectedItem.name,  
       newName: newName.trim(), 
     };
-  
+    const fileName = selectedItem.name;
     if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(renameMessage));  
-      toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+      axios
+      .post('http://116.121.53.142:9100/api/codeSync/insertRenameFileHistory', {  fileName,newName, codeSyncNo, userId })
+      .then((response) => {
+        socket.send(JSON.stringify(renameMessage));  
+
+        toast.success(`Name changed from ${selectedItem.name} to ${newName}`);
+        })
+        .catch((error) => {
+        });
     } else {
       toast.error("WebSocket is not connected.");
     }
@@ -689,7 +773,6 @@ const [menuItem , setMenuItem] = useState("");
   
 
   const handleCreateFile = () => {
-  
     // 확장자 추출
     const extension = newName.includes(".") ? newName.split(".").pop() : ""; // 확장자 추출
   
@@ -699,7 +782,6 @@ const [menuItem , setMenuItem] = useState("");
     if (filePath.startsWith("Root/")) {
       filePath = filePath.replace("Root/", ""); // 앞부분 "Root/" 제거
     }
-  
   
     const fileMessage = {
       code: "9",
@@ -713,7 +795,15 @@ const [menuItem , setMenuItem] = useState("");
   
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(fileMessage));
-      toast.success(`${newName} file create`);
+      
+      // 수정된 부분
+      axios
+      .post('http://116.121.53.142:9100/api/codeSync/insertCreateFileHistory', { newName, codeSyncNo, userId })
+      .then((response) => {
+        toast.success(`${newName} file create`);
+        })
+        .catch((error) => {
+        });
     } else {
       toast.error("WebSocket is not connected.");
     }
@@ -738,7 +828,15 @@ const [menuItem , setMenuItem] = useState("");
   
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(folderMessage));
-      toast.success(`${newName} folder create`);
+      
+      // 수정된 부분
+      axios
+      .post('http://116.121.53.142:9100/api/codeSync/insertCreateFolderHistory', { newName, codeSyncNo, userId })
+      .then((response) => {
+        toast.success(`${newName} folder create`);
+        })
+        .catch((error) => {
+        });
     } else {
       toast.error("WebSocket is not connected.");
     }
@@ -815,19 +913,22 @@ const [menuItem , setMenuItem] = useState("");
           Confirm
         </button>
         <button
-          onClick={() => setEditingName(false)}
-          style={{
-            marginLeft: "5px",
-            padding: "5px 10px",
-            backgroundColor: "#f44336",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Cancel
-        </button>
+  onClick={() => {
+    setEditingName(false);
+    toast.info("변경이 취소되었습니다.");
+  }}
+  style={{
+    marginLeft: "5px",
+    padding: "5px 10px",
+    backgroundColor: "#f44336",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+  }}
+>
+  Cancel
+</button>
       </div>
     );
   };
@@ -907,7 +1008,10 @@ const [menuItem , setMenuItem] = useState("");
 
   const handleFileDeleteClick = async () => {
     const isConfirmed = window.confirm("폴더 트리를 삭제 하시겠습니까?");
-    if (!isConfirmed) return;
+    if (!isConfirmed){
+      toast.info("폴더트리 삭제가 취소되었습니다");
+      return;
+    } 
   
     if (socket && socket.readyState === WebSocket.OPEN) {
       setIsLoading(true); // 로딩 상태 시작
@@ -926,9 +1030,7 @@ const [menuItem , setMenuItem] = useState("");
             setNoDataFound(true); // 데이터 없음 상태로 업데이트
             setIsLoading(false); // 로딩 종료
             socket.removeEventListener("message", onMessageHandler); // 이벤트 핸들러 제거
-            
-            // 삭제 완료 후 alert
-            toast.success('folderTree Delete Complete.');
+     
             
             // 화면 새로고침
             window.location.reload();
@@ -953,7 +1055,7 @@ const [menuItem , setMenuItem] = useState("");
     const zipFileName = prompt("다운로드할 ZIP 파일의 이름을 입력하세요 (예: my_folder.zip)", "folder_structure.zip");
   
     if (!zipFileName) {
-      alert("파일 이름을 입력해주세요.");
+      toast.info("파일 내보내기 취소");
       return;
     }
   
@@ -990,12 +1092,10 @@ const [menuItem , setMenuItem] = useState("");
       {folderTree === null ? (
         <Button onClick={handleFileInputClick}>Upload Folder</Button>
       ) : [
-        <RedButton onClick={handleFileDeleteClick}>Delete FolderTree</RedButton>, 
-        <Button onClick={() => handleFileExport(folderTree)}>Export FolderTree</Button>
-      ]
-      
-      } 
-  
+        <RedButton key="delete" onClick={handleFileDeleteClick}>Delete FolderTree</RedButton>, 
+        <Button key="export" onClick={() => handleFileExport(folderTree)}>Export FolderTree</Button>
+      ]}
+    
       <input
         type="file"
         ref={fileInputRef}
@@ -1004,9 +1104,9 @@ const [menuItem , setMenuItem] = useState("");
         onChange={handleFolderSelect}
         multiple
       />
-       {renderRenameInput()} {/* 이름 수정 입력창 */}
-  
-  <FileTreeContainer>
+      {renderRenameInput()} {/* 이름 수정 입력창 */}
+    
+      <FileTreeContainer>
         {isLoading ? (
           <LoadingSpinner />
         ) : noDataFound ? (

@@ -7,7 +7,6 @@ export const loadStateFromLocalStorage = (dispatch) => {
 
     const currentTime = Date.now();
     if (parsedState.expiresAt && currentTime > parsedState.expiresAt) {
-      console.log("State expired. Clearing localStorage.");
       localStorage.removeItem("userState");
 
       if (dispatch) {
@@ -19,7 +18,6 @@ export const loadStateFromLocalStorage = (dispatch) => {
 
     return parsedState.state;
   } catch (error) {
-    console.error("Could not load state from localStorage", error);
     return undefined;
   }
 };
@@ -31,9 +29,7 @@ export const saveStateToLocalStorage = (state, expireInMinutes = 30) => {
       state,
       expiresAt: Date.now() + expireInMinutes * 60 * 1000,
     });
-    console.log("로컬 스토리지 저장:", serializedState);
     localStorage.setItem("userState", serializedState);
   } catch (error) {
-    console.error("로컬 스토리지 저장 실패", error);
   }
 };

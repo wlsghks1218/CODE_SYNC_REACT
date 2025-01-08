@@ -2,7 +2,7 @@ import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useParams } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { StyleSheetManager } from 'styled-components';
 
 const ChatContainer = styled.div`
   display: flex;
@@ -85,18 +85,17 @@ const LiveChat = () => {
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
-      console.error('Error fetching userId:', error);
     }
   }
 
   // 서버에서 채팅 기록을 가져오는 함수
   async function getChatHistory() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/chatHistory?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/chatHistory?erdNo=${erdNo}`);
       const chatHistory = response.data;
   
       // 내 메세지 판별
@@ -107,7 +106,6 @@ const LiveChat = () => {
   
       setMessages(processedMessages);
     } catch (error) {
-      console.error('Error fetching chat history:', error);
     }
   }
 
@@ -118,11 +116,10 @@ const LiveChat = () => {
     getChatHistory();
 
     // WebSocket 연결
-    const socket = new WebSocket('ws://localhost:9090/chatserver.do?erdNo=' + erdNo);
+    const socket = new WebSocket('ws://116.121.53.142:9100/chatserver.do?erdNo=' + erdNo);
     setSocket(socket);
 
     socket.onopen = () => {
-      console.log('Connected to LiveChatWebSocket server');
     };
 
     socket.onmessage = (event) => {
@@ -143,7 +140,6 @@ const LiveChat = () => {
     };
 
     socket.onclose = () => {
-      console.log('Disconnected from LiveChat WebSocket server');
     };
 
     return () => {
@@ -181,6 +177,7 @@ const LiveChat = () => {
   }, [userNo]);
 
   return (
+    <StyleSheetManager shouldForwardProp={(prop) => prop !== 'isUser'}>
     <ChatContainer>
       <ChatMessages>
         {messages.map((msg, index) => (
@@ -207,6 +204,7 @@ const LiveChat = () => {
         <SendButton onClick={handleSendMessage}>Send</SendButton>
       </ChatInputContainer>
     </ChatContainer>
+    </StyleSheetManager>
   );
 };
 

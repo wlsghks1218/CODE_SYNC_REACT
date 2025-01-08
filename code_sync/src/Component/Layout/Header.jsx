@@ -134,35 +134,6 @@ const RadioGroup = styled.div`
   align-items: center;
 `;
 
-const UserList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-  margin-top: 10px;
-`;
-
-const UserListItem = styled.li`
-  margin: 5px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const InviteButton = styled.button`
-  padding: 5px 10px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #218838;
-  }
-  &:disabled {
-    background-color: #6c757d;
-  }
-`;
-
 const Header = ({ projects, fetchProjects, setProjects }) => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,7 +174,7 @@ const Header = ({ projects, fetchProjects, setProjects }) => {
       try {
         // 로그아웃 요청
         await axios.post(
-          "http://localhost:9090/member/logout",
+          "http://116.121.53.142:9100/member/logout",
           { userId: user.user?.userId },
           {
             withCredentials: true, // 쿠키 포함
@@ -232,7 +203,7 @@ const handleCreateProject = async () => {
     }
 
     try {
-        const response = await axios.get(`http://localhost:9090/project/getProjectList?userNo=${user.user.userNo}`);
+        const response = await axios.get(`http://116.121.53.142:9100/project/getProjectList?userNo=${user.user.userNo}`);
 
         if (response.data.length >= 3) {
             alert("프로젝트는 최대 3개까지 생성할 수 있습니다.");
@@ -280,7 +251,7 @@ const handleSubmit = async () => {
       return;
   }
   try {
-      await axios.post('http://localhost:9090/project/createProject', projectInfo, {
+      await axios.post('http://116.121.53.142:9100/project/createProject', projectInfo, {
           headers: {
               'Content-Type': 'application/json',
           },

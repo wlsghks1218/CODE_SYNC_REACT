@@ -46,7 +46,7 @@ const Memo = ({ memo, updateMemoPosition, updateMemo, deleteMemo }) => {
                 {isEditingContent? (
                     <ContentInput
                         ref={contentRef}
-                        value={content}
+                        value={content === null ? "" : content}
                         onBlur={() => handleBlur("content")} 
                         onChange={(e) => setContent(e.target.value)} 
                         autoFocus

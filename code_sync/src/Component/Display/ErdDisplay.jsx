@@ -33,81 +33,78 @@ const ErdDisplay = () => {
   const user = useSelector((state) => state.user);
   const userNo = user.user.userNo;
   const [history, setHistory] = useState([]);
+ const [message, setMessage] = useState(null);
+
+
+
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/history/${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/history/${erdNo}`);
       setHistory(response.data);
     } catch (error) {
-      console.error('Failed to fetch history:', error);
     }
   };
 
   // 히스토리 추가 함수
   const addHistory = useCallback(async (action) => {
-    const now = Date.now();
+    const now = new Date();
     const newHistory = {
-      erdNo: erdNo,
+      erdNo : erdNo,
       action,
-      userId: user.user.userId,
-      erdUpdateDate: now, 
+      userId : user.user.userId,
+      erdUpdateDate: now,
     };
     setHistory((prevHistory) => [newHistory, ...prevHistory]);
 
     try {
-      await axios.post('http://localhost:9090/erd/addHistory', newHistory);
+      await axios.post('http://116.121.53.142:9100/erd/addHistory', newHistory);
       fetchHistory();
     } catch (error) {
-      console.error('Failed to save history to DB:', error);
     }
 
   }, []);
 
   const startConnection = (tableId, position) => {
     if (!isAddingArrow || arrowStart) return;  // arrowStart가 이미 있으면 실행되지 않게
-
+  
     // 화살표 연결을 시작할 때만 state 설정
     setArrowStart({ tableId, position });
-    console.log("Arrow start:", { tableId, position });
-  };
+  };  
 
   const completeConnection = (tableId, position) => {
     if (!isAddingArrow || !arrowStart) return;
-
+  
     const startTable = tables.find((table) => table.id === arrowStart.tableId);
     const endTable = tables.find((table) => table.id === tableId);
 
     if (!startTable || !endTable) {
-      console.error("Start or end table not found");
       return;
     }
-
+  
     // 1. 자기 자신에게 화살표 연결 불가
     if (startTable.id === endTable.id) {
-      console.warn("Cannot connect arrow to the same table.");
       return;
     }
-
+  
     // 2. 테이블 간 화살표 연결 여부 확인 (양 방향 연결 체크)
     const isAlreadyConnected = arrows.some(
       (arrow) =>
         (arrow.startId === startTable.id && arrow.endId === endTable.id) ||
         (arrow.startId === endTable.id && arrow.endId === startTable.id)
     );
-
+  
     if (isAlreadyConnected) {
-      console.warn("These tables are already connected.");
       return;
     }
-
+  
     // 화살표의 상대 좌표 계산
     const relativeStartX = arrowStart.position.x - startTable.position.x;
     const relativeStartY = arrowStart.position.y - startTable.position.y;
     const relativeEndX = position.x - endTable.position.x;
     const relativeEndY = position.y - endTable.position.y;
-
-    console.log("Relative positions:", relativeStartX, relativeStartY, relativeEndX, relativeEndY);
-
+  
+  
     // 시작 테이블에서 Primary Key 찾기
     const primaryKey = startTable.fields.find((field) => field.isPrimary);
     if (primaryKey) {
@@ -117,7 +114,7 @@ const ErdDisplay = () => {
         isForeign: true,
         fieldId: primaryKey.fieldId,
       };
-
+  
       // 끝 테이블에 Foreign Key 추가
       setTables((prevTables) =>
         prevTables.map((table) =>
@@ -126,7 +123,7 @@ const ErdDisplay = () => {
             : table
         )
       );
-
+  
       // WebSocket을 통한 외래 키 데이터 전송
       if (socket && socket.readyState === WebSocket.OPEN) {
         const foreignKeyField = {
@@ -142,10 +139,9 @@ const ErdDisplay = () => {
         };
         socket.send(JSON.stringify(foreignKeyField));
       } else {
-        console.error("WebSocket is not open");
       }
     }
-
+  
     // 화살표 추가
     setArrows((prevArrows) => [
       ...prevArrows,
@@ -167,7 +163,7 @@ const ErdDisplay = () => {
         },
       },
     ]);
-
+  
     // WebSocket을 통한 화살표 데이터 전송
     if (socket && socket.readyState === WebSocket.OPEN) {
       const arrowMessage = {
@@ -186,29 +182,27 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(arrowMessage));
     } else {
-      console.error("WebSocket is not open");
     }
-
+  
     // 연결 완료 후 상태 초기화
     setArrowStart(null);
     setIsAddingArrow(false);
   };
-
+  
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
-      console.error('Error fetching userId:', error);
     }
   }
 
   // 테이블 정보 가져오기
-  const fetchTables = useCallback(async () => {
+  const fetchTables = async (erdNo) => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/tables?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/tables?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTables = response.data.map((item) => ({
           id: item.id || "null",
@@ -223,14 +217,13 @@ const ErdDisplay = () => {
         setTables(transformedTables);
       }
     } catch (error) {
-      console.error('Error fetching tables:', error);
       setTables([]);
     }
-  }, [erdNo]);
+  };
 
-  const fetchMemos = useCallback(async () => {
+  const fetchMemos = async (erdNo) => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/memos?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/memos?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedMemos = response.data.map((item) => ({
           id: item.id || "null",
@@ -245,16 +238,13 @@ const ErdDisplay = () => {
         setMemos(transformedMemos);
       }
     } catch (error) {
-      console.error('Error fetching tables:', error);
       setMemos([]);
     }
-  }, [erdNo])
+  };
 
-  const fetchArrows = useCallback(async () => {
+  const fetchArrows = async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/arrows?erdNo=${erdNo}`);
-
-      console.log(response.data);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/arrows?erdNo=${erdNo}`);
 
       if (response.data && Array.isArray(response.data)) {
         const transformedArrows = response.data.map((item) => ({
@@ -275,19 +265,24 @@ const ErdDisplay = () => {
           },
         }));
 
-        console.log('Transformed Arrows:', transformedArrows);
         setArrows(transformedArrows);
       }
     } catch (error) {
-      console.error('Error fetching arrows:', error);
       setArrows([]);
     }
-  }, [erdNo]);
+  };
+  useEffect(() => {
+    if (erdNo) {
+      fetchArrows(erdNo);
+      fetchTables(erdNo);
+      fetchMemos(erdNo);
+    }
+  }, [erdNo,message]);
 
   useEffect(() => {
-    fetchTables();
-    fetchMemos();
-    fetchArrows();
+    fetchTables(erdNo);
+    fetchMemos(erdNo);
+    fetchArrows(erdNo);
   }, []);
 
   useEffect(() => {
@@ -297,11 +292,10 @@ const ErdDisplay = () => {
   useEffect(() => {
     if (!userId || !erdNo) return;
 
-    const socket = new WebSocket('ws://localhost:9090/displayserver.do?erdNo=' + erdNo);
+    const socket = new WebSocket('ws://116.121.53.142:9100/displayserver.do?erdNo=' + erdNo);
     setSocket(socket);
 
     socket.onopen = () => {
-      console.log('Connected to Display WebSocket server');
     };
 
     socket.onmessage = (event) => {
@@ -432,12 +426,10 @@ const ErdDisplay = () => {
           default:
         }
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
       }
     };
 
     socket.onclose = () => {
-      console.log('Disconnected from Display WebSocket server');
     };
 
     return () => {
@@ -469,7 +461,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(tableMessage));
     } else {
-      console.error('WebSocket is not open');
     }
   }, [erdNo, socket, tables, userNo]);
 
@@ -538,7 +529,6 @@ const ErdDisplay = () => {
 
       socket.send(JSON.stringify(newFields));
     } else {
-      console.error("WebSocket is not open");
     }
   }, [erdNo, socket, userNo]);
 
@@ -557,7 +547,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(tableMessage));
     } else {
-      console.error('WebSocket is not open');
     }
 
     // 화살표 상태 업데이트
@@ -599,7 +588,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(tableMessage));
     } else {
-      console.error('WebSocket is not open');
     }
 
   }, [erdNo, socket, tables, userNo]);
@@ -626,7 +614,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(tableMessage));
     } else {
-      console.error('WebSocket is not open');
     }
 
   }, [erdNo, socket, memos, userNo]);
@@ -644,7 +631,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(memoMessage));
     } else {
-      console.error('WebSocket is not open');
     }
 
   }, [erdNo, socket]);
@@ -728,15 +714,13 @@ const ErdDisplay = () => {
               relativeEndY: arrow.endPosition.relativeY,
             };
 
-            console.log("Arrow update message:", arrowMessage);
             socket.send(JSON.stringify(arrowMessage));
           }
         });
       } else {
-        console.error("WebSocket is not open");
       }
     }
-  }, [erdNo, socket, arrows]);
+  }, [erdNo, socket, arrows,message]);
 
   // 메모 위치 변경
   const updateMemoPosition = useCallback((id, newPosition) => {
@@ -753,7 +737,6 @@ const ErdDisplay = () => {
       };
       socket.send(JSON.stringify(memoMessage));
     } else {
-      console.error('WebSocket is not open');
     }
 
   }, [erdNo, socket]);
@@ -793,6 +776,25 @@ const ErdDisplay = () => {
   useEffect(() => {
     getUserId();
   }, [userNo]);
+ 
+  useEffect(() => {
+    if (socket) {
+      const handleMessage = async (event) => {
+        setMessage(JSON.parse(event.data));
+      };
+
+    
+  
+      socket.onmessage = handleMessage;
+  
+      // Cleanup: 이전 핸들러 제거
+      return () => {
+        socket.onmessage = null;
+      };
+    }
+  }, [socket]);
+
+
 
   return (
     <div className="app-container">
@@ -814,6 +816,7 @@ const ErdDisplay = () => {
           {Array.isArray(tables) && tables.map((table) => (
             <Table
               key={table.id}
+              message={message}
               table={table}
               updatePosition={updateTablePosition}
               updateTable={updateTable}

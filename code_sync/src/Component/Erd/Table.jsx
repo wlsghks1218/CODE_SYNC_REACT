@@ -1,12 +1,14 @@
 import axios from "axios";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Draggable from "react-draggable";
+import { useParams } from "react-router-dom";
 import styled from "styled-components";
 
-const Table = ({ table, updatePosition, updateTable, deleteTable,
+const Table = ({ message,table, updatePosition, updateTable, deleteTable,
   copyTable, id, startConnection,
   completeConnection, isAddingArrow
 }) => {
+  const { erdNo } = useParams();
   const tableRef = useRef(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(table.name);
@@ -17,6 +19,11 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [position, setPosition] = useState(table.position || { x: 0, y: 0 });
+  useEffect(() => {
+    fetchTableFields(); // 화면 처음 로드될 때 fetchTableFields 실행
+  }, []); // 빈 배열은 컴포넌트가 처음 마운트될 때만 실행되도록 합니다.
+  
+
 
   useEffect(() => {
     if (table.position) {
@@ -24,14 +31,13 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
     }
   }, [table.position]);
 
-  useEffect(() => {
-    console.log("isAddingArrow changed:", isAddingArrow); 
-  }, [isAddingArrow]);
 
-  // 필드 데이터 불러오기
-  const fetchTableFields = useCallback(async () => {
+
+  const fetchTableFields = async () => {
+
+    
     try {
-      const response = await axios.get(`http://localhost:9090/erd/tableFields?id=${id}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/tableFields?id=${id}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTableFields = response.data.map((item) => ({
           erdTableNo: item.erdTableNo,
@@ -43,7 +49,8 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
           isForeign: item.isPrimary === "2",
           domain: item.domain || "N/A",
         }));
-
+       
+        
         const sortedFields = transformedTableFields.sort((a, b) => {
           if (a.isPrimary && !b.isPrimary) return -1;
           if (b.isPrimary && !a.isPrimary) return 1;
@@ -54,18 +61,16 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
         setTableFields(sortedFields);
       }
     } catch (error) {
-      console.error("Error fetching table fields:", error);
     }
-  }, [id]);
+  };
+
 
   useEffect(() => {
-    if (isUpdating || editingField !== null) {
-      return;
+    // message가 변경될 때마다 fetchTableFields 함수 실행
+    if (message) {
+      fetchTableFields();
     }
-    const interval = setInterval(fetchTableFields, 1000);
-    return () => clearInterval(interval);
-  }, [isUpdating, fetchTableFields, editingField]);
-  
+  }, [message]); // fetchTableFields는 의존성 배열에서 제외
 
   // 제목 변경
   const handleTitleChange = () => setIsEditingTitle(true);
@@ -103,12 +108,10 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
 
   // 필드 변경
   const handleFieldChange = (fieldIndex, fieldType, value) => {
-    setIsUpdating(true);
     const updatedFields = tableFields.map((field, index) =>
       index === fieldIndex ? { ...field, [fieldType]: value } : field
     );
     setTableFields(updatedFields);
-    setIsUpdating(false);
   };
 
   // 필드 삭제

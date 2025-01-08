@@ -338,7 +338,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:9090/member/login",
+        "http://116.121.53.142:9100/member/login",
         {
           userId: userId,
           userPw: userPw,
@@ -376,7 +376,7 @@ const Login = () => {
     }
 
     try {
-        const response = await axios.post("http://localhost:9090/member/findId", {
+        const response = await axios.post("http://116.121.53.142:9100/member/findId", {
             email: emailForFind,
         });
 
@@ -400,7 +400,7 @@ const Login = () => {
 
     try {
         const response = await axios.post(
-            "http://localhost:9090/member/chkEmailExistForPassword",
+            "http://116.121.53.142:9100/member/chkEmailExistForPassword",
             { userId: findUserId, email: emailForFind }
         );
 
@@ -417,7 +417,7 @@ const Login = () => {
 
   const changePassword = async () => {
     try {
-      const response = await axios.post("http://localhost:9090/member/changePassword", {
+      const response = await axios.post("http://116.121.53.142:9100/member/changePassword", {
         userId : findUserId,
         email: emailForFind,
         newPassword: newPassword,
@@ -435,13 +435,12 @@ const Login = () => {
 
   const sendVerification = async () => {
     const userEmail = emailForFind;
-    console.log(userEmail);
   
     if (!userEmail) {
       alert('이메일을 입력해주세요.');
       return;
     }
-    const chkEmailExist = await axios.post('http://localhost:9090/member/chkEmailExist', null, {
+    const chkEmailExist = await axios.post('http://116.121.53.142:9100/member/chkEmailExist', null, {
       params: { userEmail }
     });
     if (chkEmailExist.data === 0) {
@@ -450,11 +449,10 @@ const Login = () => {
     }
     setIsSendingVerification(true);
     try {
-      const response = await axios.post('http://localhost:9090/member/sendVerification', { userEmail });
+      const response = await axios.post('http://116.121.53.142:9100/member/sendVerification', { userEmail });
       if (response.status === 200) {
         const { verificationCode } = response.data;
         setServerCode(verificationCode);
-        console.log(verificationCode);
         alert('인증 코드가 이메일로 전송되었습니다.');
         setIsVerificationSent(true);
       }

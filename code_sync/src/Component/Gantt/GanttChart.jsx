@@ -212,7 +212,7 @@ function GanttChart() {
     useEffect(() => {
         const fetchGanttData = async () => {
             try {
-                const response = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const response = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (response.status === 200) {
                     setGanttList(response.data);
                 }
@@ -307,9 +307,9 @@ function GanttChart() {
         };
 
         try {
-            const response = await axios.post("http://localhost:9090/gantt/createGantt", ganttData);
+            const response = await axios.post("http://116.121.53.142:9100/gantt/createGantt", ganttData);
             if (response.status === 200) {
-                const updatedList = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const updatedList = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (updatedList.status === 200) {
                     setGanttList(updatedList.data);
                 }
@@ -326,7 +326,7 @@ function GanttChart() {
         }
 
         try {
-            const response = await axios.delete(`http://localhost:9090/gantt/${selectedGantt.ganttNo}`);
+            const response = await axios.delete(`http://116.121.53.142:9100/gantt/${selectedGantt.ganttNo}`);
             if (response.status === 200) {
                 setGanttList(ganttList.filter((item) => item.ganttNo !== selectedGantt.ganttNo));
                 closeModal();
@@ -352,10 +352,10 @@ function GanttChart() {
         };
     
         try {
-            const response = await axios.put("http://localhost:9090/gantt/updateGantt", updatedGanttData);
+            const response = await axios.put("http://116.121.53.142:9100/gantt/updateGantt", updatedGanttData);
             if (response.status === 200) {
                 // 서버 응답에 따라 상태 업데이트
-                const updatedList = await axios.get(`http://localhost:9090/gantt/${projectNo}`);
+                const updatedList = await axios.get(`http://116.121.53.142:9100/gantt/${projectNo}`);
                 if (updatedList.status === 200) {
                     setGanttList(updatedList.data);
                 }

@@ -73,7 +73,7 @@ const UserDetail = () => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await axios.get(`http://localhost:9090/admin/user/${id}`);
+                const response = await axios.get(`http://116.121.53.142:9100/admin/user/${id}`);
                 setUser({
                     ...response.data,
                     userPw: '-', // Display '-' for user password
@@ -91,7 +91,7 @@ const UserDetail = () => {
 
     const handleUpdate = async () => {
         try {
-            await axios.put(`http://localhost:9090/admin/updateUser`, user);
+            await axios.put(`http://116.121.53.142:9100/admin/updateUser`, user);
             alert('유저 정보가 업데이트되었습니다.');
             navigate(-1);
         } catch (error) {
@@ -101,7 +101,7 @@ const UserDetail = () => {
     const handleDelete = async () => {
         if (window.confirm('정말 삭제하시겠습니까?')) {
             try {
-                await axios.delete(`http://localhost:9090/admin/deleteUser/${id}`);
+                await axios.delete(`http://116.121.53.142:9100/admin/deleteUser/${id}`);
                 alert('유저 정보가 삭제되었습니다.');
                 navigate(-1);
             } catch (error) {

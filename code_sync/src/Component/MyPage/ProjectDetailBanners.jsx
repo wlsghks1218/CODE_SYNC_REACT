@@ -84,7 +84,7 @@ const ProjectDelTd = styled.td`
   padding: 10px 0;
 `;
 const ProjectUpdateButton = styled.button`
-  padding: 10px 20px;
+  padding: 10px 15px;
   background-color: #dc3545;
   color: white;
   border: none;
@@ -92,6 +92,7 @@ const ProjectUpdateButton = styled.button`
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
+  margin-left: 10px;
 
   &:hover {
     background-color: #c82333;
@@ -155,30 +156,33 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
 
   const handleSavePortfolioLink = async () => {
     try {
-      await axios.post("http://localhost:9090/project/updatePortfolio", {
+      await axios.post("http://116.121.53.142:9100/project/updatePortfolio", {
         projectNo,
         temporaryLink,
       });
-      alert("포트폴리오 링크가 성공적으로 저장되었습니다.");
-      setPortfolioLink(temporaryLink);
-      setShowPortfolioModal(false);
       
-      const updatedProject = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
+      const updatedProject = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
         params: { projectNo },
       });
-      setProject(updatedProject.data); // 프로젝트 정보 갱신
+      setProject(updatedProject.data);
+      setPortfolioLink(temporaryLink);
+      setShowPortfolioModal(false);
+      setIsEditingPortfolio(false); 
+      alert("포트폴리오 링크가 성공적으로 저장되었습니다.");
+      setShowPortfolioModal(true);
     } catch (error) {
     }
   };
 
   const handleClosePortfolioModal = () => {
     setShowPortfolioModal(false);
+    setTemporaryLink("");
   };
 
   useEffect(() => {
     const fetchRoutes = async () => {
       try {
-        const projectInfo = await axios.get("http://localhost:9090/project/getProjectByProjectNo", {
+        const projectInfo = await axios.get("http://116.121.53.142:9100/project/getProjectByProjectNo", {
           params: { projectNo: projectNo }
         })
 
@@ -187,9 +191,9 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
         setPortfolioLink(projectInfo.data.portfolioLink || "");
 
         const responses = await Promise.all([
-          axios.get("http://localhost:9090/project/checkErd", { params: { projectNo } }),
-          axios.get("http://localhost:9090/project/checkCode", { params: { projectNo } }),
-          axios.get("http://localhost:9090/project/checkDocs", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkErd", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkCode", { params: { projectNo } }),
+          axios.get("http://116.121.53.142:9100/project/checkDocs", { params: { projectNo } }),
         ]);
         setRoutes({
           erdNo: responses[0].data.erdNo,
@@ -227,7 +231,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     // eslint-disable-next-line no-restricted-globals
     if (confirm("프로젝트 진짜 지울거에요?")) {
       try {
-        const response = await axios.get(`http://localhost:9090/project/deleteProject`, {
+        const response = await axios.get(`http://116.121.53.142:9100/project/deleteProject`, {
           params: { projectNo },
         });
         if (response.data.success) {
@@ -253,7 +257,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
   const handleUpdateProject = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:9090/project/updateProject",
+        "http://116.121.53.142:9100/project/updateProject",
         { ...editedProject }
       );
       if (response.data > 0) {
@@ -265,6 +269,32 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
     } catch (error) {
     }
   };
+  
+  const handleLeaveProject = async () => {
+    // 확인 메시지 출력
+    const confirmLeave = window.confirm("정말로 이 프로젝트를 나가시겠습니까?");
+    if (!confirmLeave) return;
+  
+    try {
+      // 서버에 사용자 탈퇴 요청
+      const response = await axios.post("http://116.121.53.142:9100/project/leaveProject", {
+        projectNo,
+        userNo: user.user.userNo, // Redux에서 가져온 user 정보를 사용
+      });
+  
+      if (response.data > 0) {
+        alert("프로젝트에서 성공적으로 나갔습니다.");
+        fetchProjects(user.user.userNo); // 프로젝트 목록 갱신
+        closeModal(); // 모달 닫기
+      } else {
+        alert("프로젝트 나가기에 실패했습니다. 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("프로젝트 나가기 오류:", error);
+      alert("오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+  
 
 
   return (
@@ -343,6 +373,7 @@ const ProjectDetailBanners = ({ projectNo, fetchProjects, closeModal }) => {
                   </tr>
                   <tr>
                     <ProjectDelTd colSpan="2">
+                        <ProjectUpdateButton onClick={handleLeaveProject}>프로젝트 나가기</ProjectUpdateButton>
                     {isEditing ? (
                         <ProjectUpdateButton onClick={handleUpdateProject}>
                           수정 완료

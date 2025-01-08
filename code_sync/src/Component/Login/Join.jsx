@@ -136,18 +136,15 @@ const Join = () => {
     }
   
     try {
-      const response = await axios.post('http://localhost:9090/member/checkUsername/', { userId });
+      const response = await axios.post('http://116.121.53.142:9100/member/checkUsername/', { userId });
       if (response.data.isDuplicate) {
         setIsIdDuplicate(true);
-        alert('이미 존재하는 아이디입니다.');
         return false;
       } else {
         setIsIdDuplicate(false);
-        alert('사용 가능한 아이디입니다!');
         return true;
       }
     } catch (error) {
-      alert('아이디 중복 확인 중 오류가 발생했습니다.');
       return false;
     }
   };
@@ -160,7 +157,7 @@ const Join = () => {
     }
     setIsSendingVerification(true);
     try {
-      const response = await axios.post('http://localhost:9090/member/sendVerification', { userEmail });
+      const response = await axios.post('http://116.121.53.142:9100/member/sendVerification', { userEmail });
       if (response.status === 200) {
         const { verificationCode } = response.data;
         setServerCode(verificationCode);
@@ -168,7 +165,6 @@ const Join = () => {
         setIsVerificationSent(true);
       }
     } catch (error) {
-      alert('인증 코드 전송 중 오류가 발생했습니다.');
     } finally {
       setIsSendingVerification(false);
     }
@@ -237,7 +233,7 @@ const Join = () => {
     };
 
     try {
-      const response = await axios.post('http://localhost:9090/member/signUp', requestData);
+      const response = await axios.post('http://116.121.53.142:9100/member/signUp', requestData);
       if (response.status === 200) {
         alert('회원가입이 완료되었습니다!');
         if (window.confirm('로그인 페이지로 이동하시겠습니까?')) {

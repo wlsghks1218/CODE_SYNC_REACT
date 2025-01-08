@@ -72,7 +72,7 @@ const SendButton = styled.button`
   }
 `;
 
-const LiveChat = () => {
+const LiveChat = (isChatOpen) => {
   const { codeSyncNo } = useParams();  // URL 경로에서 codeSyncNo 파라미터 가져오기
   const location = useLocation();
   const [messages, setMessages] = useState([]);  // 메시지 상태
@@ -87,7 +87,7 @@ const LiveChat = () => {
   // 서버에서 채팅 기록을 가져오는 함수
   async function getChatHistory() {
     try {
-      const response = await axios.get(`http://localhost:9090/api/codeSync/chatHistory?codeSyncNo=${codeSyncNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/chatHistory?codeSyncNo=${codeSyncNo}`);
       const chatHistory = response.data;
   
       // 내 메세지 판별
@@ -108,7 +108,7 @@ const LiveChat = () => {
     getChatHistory();
 
     // WebSocket 연결
-    const socket = new WebSocket('ws://localhost:9090/codeSync/chatserver.do?codeSyncNo=' + codeSyncNo);
+    const socket = new WebSocket('ws://116.121.53.142:9100/codeSync/chatserver.do?codeSyncNo=' + codeSyncNo);
     setSocket(socket);
 
     socket.onopen = () => {
@@ -134,9 +134,7 @@ const LiveChat = () => {
     socket.onclose = () => {
     };
 
-    return () => {
-      socket.close();
-    };
+    
   }, [codeSyncNo, userId]);
 
   const handleSendMessage = () => {

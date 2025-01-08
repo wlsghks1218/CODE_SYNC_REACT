@@ -86,7 +86,7 @@ const ViewHistory = ({ isOpen, onClose }) => {
       setError(null);
   
       try {
-        const response = await axios.get(`http://localhost:9090/api/codeSync/history/${codeSyncNo}`);
+        const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/history/${codeSyncNo}`);
         setHistoryData(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         setError('히스토리를 가져오는 중 문제가 발생했습니다.');
@@ -113,13 +113,14 @@ const ViewHistory = ({ isOpen, onClose }) => {
         case 1:
           return `${userId}님이 ${fileName} 파일을 수정했습니다`;
         case 2:
-          return `${fileName || folderName} ${fileName ? '파일' : '폴더'}가 생성되었습니다`;
+          return `${fileName || folderName} ${fileName ? '파일이' : '폴더가'} 생성되었습니다`;
         case 3:
-          return `${fileName || folderName} ${fileName ? '파일' : '폴더'}가 삭제되었습니다`;
+          return `${fileName || folderName} ${fileName ? '파일이' : '폴더가'} 삭제되었습니다`;
         case 4:
-          return `${fileName || folderName} ${fileName ? '파일' : '폴더'}가 ${newFolderName} 폴더로 이동되었습니다`;
-        case 5:
-          return `${fileName || folderName} ${fileName ? '파일' : '폴더'}의 이름이 ${newName}으로 변경되었습니다`;
+          return `${fileName || folderName} ${fileName ? '파일이' : '폴더가'} ${newFolderName} 폴더로 붙여넣기 되었습니다`;
+          case 5:
+            return `${fileName || folderName} ${fileName ? '파일' : '폴더'}의 이름이 ${fileName ? newName : newFolderName}으로 변경되었습니다`;
+        
         default:
           return '';
       }

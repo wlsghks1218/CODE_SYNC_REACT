@@ -20,7 +20,6 @@ const store = createStore(
 loadStateFromLocalStorage(store.dispatch);
 
 store.subscribe(() => {
-  console.log("Redux 상태 변경 감지:", store.getState()); // 상태 변경 로그 추가
   saveStateToLocalStorage(store.getState());
 });
 
