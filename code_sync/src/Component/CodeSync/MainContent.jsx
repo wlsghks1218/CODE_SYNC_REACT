@@ -26,7 +26,6 @@ const ContentWrapper = styled.div`
   height: 100%;
   overflow: hidden;
   position: relative;
-  margin-top: -15px;
 `;
 
 const EditorWrapper = styled.div`

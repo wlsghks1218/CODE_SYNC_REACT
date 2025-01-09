@@ -218,7 +218,6 @@ const Sidebar = ({ onButtonClick }) => {
                               setAllUsers((prevUsers) => prevUsers.filter((user) => user.userNo !== userNo));
                               setFilteredUsers((prevFiltered) => prevFiltered.filter((user) => user.userNo !== userNo));
                             } catch (error) {
-                              alert("초대 실패");
                             } finally {
                               setInvitingUserId(null);
                             }

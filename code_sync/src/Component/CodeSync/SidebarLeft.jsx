@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useSelector } from 'react-redux';
+
 const SidebarContainer = styled.div`
   width: ${(props) => props.width}px;
   background-color: #f4f4f4;
@@ -22,6 +23,7 @@ const FileTreeContainer = styled.div`
   border: 1px dashed #ccc;
   height: 800px;
   overflow-y: auto;
+  padding-bottom : 60px;
 `;
 
 const Button = styled.button`
