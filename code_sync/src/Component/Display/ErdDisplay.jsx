@@ -36,7 +36,7 @@ const ErdDisplay = () => {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/history/${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/history/${erdNo}`);
       setHistory(response.data);
     } catch (error) {
       console.error('Failed to fetch history:', error);
@@ -55,7 +55,7 @@ const ErdDisplay = () => {
     setHistory((prevHistory) => [newHistory, ...prevHistory]);
 
     try {
-      await axios.post('http://localhost:9090/erd/addHistory', newHistory);
+      await axios.post('http://116.121.53.142:9100/erd/addHistory', newHistory);
       fetchHistory();
     } catch (error) {
       console.error('Failed to save history to DB:', error);
@@ -197,7 +197,7 @@ const ErdDisplay = () => {
   // 사용자 ID를 가져오는 함수
   async function getUserId() {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/userId?userNo=${userNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/userId?userNo=${userNo}`);
       const userId = response.data.userId;
       setUserId(userId);
     } catch (error) {
@@ -208,7 +208,7 @@ const ErdDisplay = () => {
   // 테이블 정보 가져오기
   const fetchTables = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/tables?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/tables?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTables = response.data.map((item) => ({
           id: item.id || "null",
@@ -230,7 +230,7 @@ const ErdDisplay = () => {
 
   const fetchMemos = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/memos?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/memos?erdNo=${erdNo}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedMemos = response.data.map((item) => ({
           id: item.id || "null",
@@ -252,7 +252,7 @@ const ErdDisplay = () => {
 
   const fetchArrows = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/arrows?erdNo=${erdNo}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/arrows?erdNo=${erdNo}`);
 
       console.log(response.data);
 

@@ -166,7 +166,7 @@ const userId = user.user.userId;
     try {
       // 1. 먼저 폴더가 있는지 확인하는 요청을 보냄
       const checkResponse = await axios.get(`http://116.121.53.142:9100/api/codeSync/checkFolderExistence?codeSyncNo=${codeSyncNo}`);
-  
+
       // checkResponse.data가 0이면 폴더가 없다는 의미
       if (checkResponse.status === 200 && checkResponse.data === 0) {
         // 폴더가 없다면 더 이상 진행하지 않고 종료
@@ -174,10 +174,9 @@ const userId = user.user.userId;
         setFolderTree(null);
         return;
       }
-  
+
       // 2. 폴더가 존재하면, 실제 폴더 구조를 가져오는 요청을 보냄
       const response = await axios.get(`http://116.121.53.142:9100/api/codeSync/folderStructure?codeSyncNo=${codeSyncNo}`);
-  
       if (response.status === 200) {
         const data = response.data;
         if (data.folders.length === 0 && data.files.length === 0) {

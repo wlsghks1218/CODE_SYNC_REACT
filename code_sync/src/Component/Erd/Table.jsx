@@ -30,7 +30,7 @@ const Table = ({ table, updatePosition, updateTable, deleteTable,
   // 필드 데이터 불러오기
   const fetchTableFields = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:9090/erd/tableFields?id=${id}`);
+      const response = await axios.get(`http://116.121.53.142:9100/erd/tableFields?id=${id}`);
       if (response.data && Array.isArray(response.data)) {
         const transformedTableFields = response.data.map((item) => ({
           erdTableNo: item.erdTableNo,

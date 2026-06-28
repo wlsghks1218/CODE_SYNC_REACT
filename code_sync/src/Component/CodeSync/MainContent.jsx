@@ -94,7 +94,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
         return Promise.resolve(); // 에러를 무시하고 진행
       }
     );
-  
+
     // 컴포넌트가 언마운트될 때 인터셉터 정리
     return () => {
       axios.interceptors.response.eject(responseInterceptor);
@@ -103,7 +103,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
   useEffect(() => {
     if (!fileNo) return; // fileNo가 없으면 실행하지 않음
-  
+
     const checkLockStatus = async () => {
       try {
         const response = await axios.post('http://116.121.53.142:9100/api/codeSync/checkLocked', {
@@ -117,7 +117,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
         // 에러 발생 시 아무 동작도 하지 않음 (에러를 처리하지 않음)
       }
     };
-  
+
     checkLockStatus();
   }, [fileContent, message, fileNo]); // fileNo도 의존성 배열에 포함
   
@@ -152,7 +152,7 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
 
   useEffect(() => {
     if (!fileNo) return; // fileNo가 없으면 실행하지 않음
-  
+
     axios
       .post('http://116.121.53.142:9100/api/codeSync/checkWhoLocked', {
         fileNo,
@@ -162,16 +162,16 @@ const MainContent = ({ fileContent, fileNo, socket, message,onFileContentChange 
       .then((response) => {
         const { isLocked } = response.data;
         setIsReadOnly(!isLocked);
-  
+
         try {
           const lockStatus = response.data.isLocked;
-  
+
           if (lockStatus === 1 || lockStatus === 2) {
             setIsLockedByUser(lockStatus);
           } else if (lockStatus === 3) {
             setIsLockedByUser(3);
           }
-  
+
           if (message?.status === 'checked') {
             setMessageStatus(message.status);
           }
